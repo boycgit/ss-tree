@@ -1,0 +1,106 @@
+import Comparator from '../comparator';
+
+// 默认的数据拷贝函数，保存的 data 数据最好 json 格式
+function nodeCloner(data): any {
+  try {
+    return JSON.parse(JSON.stringify(data));
+  } catch (err) {
+    console.error(`node clone error: ${err}`);
+    return data;
+  }
+}
+
+// compare two node if equal or not
+export type NodeEqualComarator = (node: TreeNode) => boolean;
+
+export class TreeNode {
+  data: any;
+  meta: object;
+  parent: TreeNode | null;
+  children: TreeNode[];
+  nodeComparator: Comparator;
+  constructor(data = null) {
+    this.data = data;
+
+    // any node related meta information may be stored here
+    this.meta = {};
+
+    this.parent = null;
+    this.children = [];
+    this.nodeComparator = new Comparator();
+  }
+
+  /**
+   * clone current node
+   *
+   * @param {*} [handler=nodeCloner]
+   * @returns
+   * @memberof TreeNode
+   */
+  clone(handler = nodeCloner) {
+    return new TreeNode(handler(this.data));
+  }
+
+  /**
+   * add new child to current node
+   *
+   * @param {TreeNode} node - node to be added
+   * @memberof TreeNode
+   */
+  add(node: TreeNode): TreeNode {
+    this.children.push(node);
+    node.parent = this;
+    return this;
+  }
+
+  /**
+   * remove current node, just set `parent` attribute `null`
+   *
+   * @returns {TreeNode}
+   * @memberof TreeNode
+   */
+  remove(): TreeNode {
+    this.parent = null; // 主要是让 parent 指向 null
+    return this;
+  }
+
+  /**
+   * remove child node(s)
+   *
+   * @param {TreeNode} nodeToRemoved -  node want to be removed
+   * @param {boolean} [removeOnce=true] - if remove once or not (some node may have duplicates)
+   * @returns {boolean}
+   * @memberof TreeNode
+   */
+  removeChild(nodeToRemoved: TreeNode, removeOnce: boolean = true): boolean {
+    const indexes: number[] = [];
+    // 遍历获取所有对比
+    const methodName = removeOnce ? 'some' : 'forEach'; // if you only remove once, can use `some` method of Array
+    (this.children[methodName] as any)((node, idx) => {
+      if (this.nodeComparator.equal(node, nodeToRemoved)) {
+        indexes.push(idx);
+        return true;
+      }
+    });
+
+    if (!indexes.length) return false;
+
+    indexes.reverse().forEach(idx => {
+      this.children.splice(idx, 1)[0];
+    });
+    nodeToRemoved.parent = null;
+    return true;
+  }
+
+  /**
+   * toString implemention
+   *
+   * @returns {string}
+   * @memberof TreeNode
+   */
+  toString(): string {
+    return `[tree-node] data: ${JSON.stringify(
+      this.data
+    )}, meta: ${JSON.stringify(this.meta)}`;
+  }
+}
