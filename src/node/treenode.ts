@@ -1,4 +1,4 @@
-import Comparator from '../comparator';
+import Comparator from 'ss-comparator';
 
 // 默认的数据拷贝函数，保存的 data 数据最好 json 格式
 function nodeCloner(data): any {
@@ -18,8 +18,8 @@ export class TreeNode {
   meta: object;
   parent: TreeNode | null;
   children: TreeNode[];
-  nodeComparator: Comparator;
-  constructor(data = null) {
+  comparator: Comparator;
+  constructor(data?, comparator = new Comparator()) {
     this.data = data;
 
     // any node related meta information may be stored here
@@ -27,7 +27,7 @@ export class TreeNode {
 
     this.parent = null;
     this.children = [];
-    this.nodeComparator = new Comparator();
+    this.comparator = comparator;
   }
 
   /**
@@ -38,18 +38,20 @@ export class TreeNode {
    * @memberof TreeNode
    */
   clone(handler = nodeCloner) {
-    return new TreeNode(handler(this.data));
+    return new TreeNode(handler(this.data), this.comparator);
   }
 
   /**
    * add new child to current node
-   *
+   * if node already is child of current, it won't add again
    * @param {TreeNode} node - node to be added
    * @memberof TreeNode
    */
   add(node: TreeNode): TreeNode {
-    this.children.push(node);
-    node.parent = this;
+    if (!~this.children.indexOf(node)) {
+      this.children.push(node);
+      node.parent = this;
+    }
     return this;
   }
 
@@ -60,6 +62,9 @@ export class TreeNode {
    * @memberof TreeNode
    */
   remove(): TreeNode {
+    if (this.parent) {
+      this.parent.removeChild(this);
+    }
     this.parent = null; // 主要是让 parent 指向 null
     return this;
   }
@@ -68,25 +73,24 @@ export class TreeNode {
    * remove child node(s)
    *
    * @param {TreeNode} nodeToRemoved -  node want to be removed
-   * @param {boolean} [removeOnce=true] - if remove once or not (some node may have duplicates)
    * @returns {boolean}
    * @memberof TreeNode
    */
-  removeChild(nodeToRemoved: TreeNode, removeOnce: boolean = true): boolean {
+  removeChild(nodeToRemoved: TreeNode): boolean {
     const indexes: number[] = [];
     // 遍历获取所有对比
-    const methodName = removeOnce ? 'some' : 'forEach'; // if you only remove once, can use `some` method of Array
-    (this.children[methodName] as any)((node, idx) => {
-      if (this.nodeComparator.equal(node, nodeToRemoved)) {
+    this.children.some((node, idx) => {
+      if (this.comparator.equal(node, nodeToRemoved)) {
         indexes.push(idx);
         return true;
       }
+      return false;
     });
 
     if (!indexes.length) return false;
 
     indexes.reverse().forEach(idx => {
-      this.children.splice(idx, 1)[0];
+      this.children.splice(idx, 1);
     });
     nodeToRemoved.parent = null;
     return true;
