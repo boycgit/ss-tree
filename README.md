@@ -41,6 +41,8 @@ npm test
 
 ## document
 
+主要注意空树（tree.root = null） 和 根节点为空 (tree.root = new TreeNode()) 的差别；
+
 ```bash
 npm run doc
 ```

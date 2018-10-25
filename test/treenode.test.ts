@@ -82,7 +82,66 @@ describe('[TreeNode] 方法 - clone 方法', () => {
     const node = new TreeNode(fn);
     const nodeClone = node.clone();
     expect(nodeClone.data).toBe(fn);
+  });
+});
 
+describe('[TreeNode] 属性 - depth 和 level 属性', () => {
+  /*
+ * create base tree for test
+    creates this tree
+    one
+    ├── two
+    │   ├── five
+    │   └── six
+    │       └── eight
+    ├── three
+    └── four
+        └── seven
+    
+    */
+  test('获取某个节点的深度和层级', () => {
+    const nodes = [
+      'one',
+      'two',
+      'three',
+      'four',
+      'five',
+      'six',
+      'seven',
+      'eight'
+    ].map(tid => {
+      return new TreeNode(tid);
+    });
+
+    const root = new TreeNode(nodes[0]);
+
+    root.add(nodes[1].add(nodes[4]).add(nodes[5].add(nodes[7])));
+    root.add(nodes[2]);
+    root.add(nodes[3].add(nodes[6]));
+
+    expect(root.depth).toBe(0);
+    expect(root.level).toBe(1);
+
+    expect(nodes[1].depth).toBe(1);
+    expect(nodes[1].level).toBe(2);
+
+    expect(nodes[2].depth).toBe(1);
+    expect(nodes[2].level).toBe(2);
+
+    expect(nodes[3].depth).toBe(1);
+    expect(nodes[3].level).toBe(2);
+
+    expect(nodes[4].depth).toBe(2);
+    expect(nodes[4].level).toBe(3);
+
+    expect(nodes[5].depth).toBe(2);
+    expect(nodes[5].level).toBe(3);
+
+    expect(nodes[6].depth).toBe(2);
+    expect(nodes[6].level).toBe(3);
+
+    expect(nodes[7].depth).toBe(3);
+    expect(nodes[7].level).toBe(4);
   });
 });
 
@@ -115,6 +174,15 @@ describe('[TreeNode] 方法 - add 方法', () => {
     expect(node1.children.length).toBe(1);
     expect(node1.children[0]).toBe(node2);
     expect(node2.parent).toBe(node1);
+  });
+  test('可链式调用，添加子节点', () => {
+    node1.add(node2).add(node3);
+
+    expect(node1.children.length).toBe(2);
+    expect(node1.children[0]).toBe(node2);
+    expect(node1.children[1]).toBe(node3);
+    expect(node2.parent).toBe(node1);
+    expect(node3.parent).toBe(node1);
   });
 
   test('重复添加同一个子节点相当于只添加一次（这是因为子节点的 parent 只有一个）', () => {

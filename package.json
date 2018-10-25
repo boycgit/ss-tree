@@ -33,8 +33,8 @@
   },
   "dependencies": {
     "ss-comparator": "^1.0.0",
-    "ss-queue": "^1.0.2",
-    "ss-stack": "^1.0.2"
+    "ss-queue": "^1.0.3",
+    "ss-stack": "^1.0.4"
   },
   "devDependencies": {
     "@types/jest": "^23.3.1",

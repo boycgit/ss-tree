@@ -1,4 +1,5 @@
 import Comparator from 'ss-comparator';
+import { invariant } from '../lib';
 
 // 默认的数据拷贝函数，保存的 data 数据最好 json 格式
 function nodeCloner(data): any {
@@ -31,6 +32,33 @@ export class TreeNode {
   }
 
   /**
+   *  depth of current node
+   * just count how many parent 
+   * @readonly
+   * @memberof TreeNode
+   */
+  get depth(): number{
+    let count = 0;
+    let parent = this.parent;
+    while(parent){
+      count += 1;
+      parent = parent.parent;
+    }
+    return count;
+  }
+
+  /**
+   *  level of current node
+   *
+   * @readonly
+   * @type {number}
+   * @memberof TreeNode
+   */
+  get level(): number {
+    return this.depth + 1;
+  }
+
+  /**
    * clone current node
    *
    * @param {*} [handler=nodeCloner]
@@ -48,6 +76,7 @@ export class TreeNode {
    * @memberof TreeNode
    */
   add(node: TreeNode): TreeNode {
+    invariant(node instanceof TreeNode, `${node} should be instace of TreeNode`);
     if (!~this.children.indexOf(node)) {
       this.children.push(node);
       node.parent = this;

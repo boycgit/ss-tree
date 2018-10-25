@@ -1,10 +1,10 @@
 import { TreeNode } from '../node/treenode';
 import { invariant, isExist, isFunction } from '../lib';
-import Queue from 'ss-queue';
 import Stack from 'ss-stack';
+import Queue from 'ss-queue';
 
 // handle current node when traverse
-type NodeHandler = (node: TreeNode) => any;
+type NodeHandler = (node: TreeNode, lastHandleResult?: any) => any;
 
 // map current node to another
 type NodeMapper = (node: TreeNode, parent?: TreeNode) => TreeNode;
@@ -14,6 +14,16 @@ type ChildAssigner = (parent: TreeNode, children: TreeNode[]) => void;
 
 // condition whose target node matched to add or remove
 type ConditionFunction = (node: TreeNode) => boolean;
+
+// condition function for get tree leaves
+export const IsLeafCondition = function(node: TreeNode) {
+  return node.children.length === 0;
+};
+
+export const SizeHandler = function(node: TreeNode, lastResult: number = 0) {
+  lastResult += 1;
+  return lastResult;
+};
 
 const DEFAULT_ASSIGNER: ChildAssigner = function(
   parent: TreeNode,
@@ -28,21 +38,87 @@ export enum TRAVERSE_TYPE {
 }
 
 export class Tree {
-  _root: TreeNode;
-  constructor(data) {
-    let nodeData = data;
+  _root: TreeNode | null;
+  constructor(data?) {
+    let nodeData: TreeNode | null = null;
     // 支持入参是 node 的场景
     if (data instanceof TreeNode) {
-      nodeData = data.data;
+      nodeData = data;
+    } else if (isExist(data, false)) {
+      nodeData = new TreeNode(data);
     }
-    this._root = new TreeNode(nodeData);
+    this._root = nodeData;
   }
 
-  get root() {
+  get root(): TreeNode | null {
     return this._root;
   }
-  set root(val) {
-    this._root.data = val;
+  set root(node: TreeNode | null) {
+    this._root = node;
+  }
+
+  get isEmpty(): boolean {
+    return this._root === null;
+  }
+
+  /**
+   * construct tree from tree node
+   * using deep clone method
+   *
+   * @static
+   * @param {TreeNode} node
+   * @returns {Tree}
+   * @memberof Tree
+   */
+  static fromNode(node: TreeNode): Tree {
+    const tree = new Tree();
+    tree.root = node; // 生成一颗子树
+    return Tree.map(tree, node => {
+      return node.clone();
+    });
+  }
+
+  /**
+   * get tree leaves
+   *
+   * @readonly
+   * @type {TreeNode[]}
+   * @memberof Tree
+   */
+  get leaves(): TreeNode[] {
+    return this.find(IsLeafCondition);
+  }
+
+  /**
+   * get current tree most depth
+   * aka.  calculate max leaf's depth
+   *
+   * @readonly
+   * @type {number}
+   * @memberof Tree
+   */
+  get depth(): number {
+    const leaves = this.leaves;
+    let mostDepth = 0;
+
+    leaves.forEach(leaf => {
+      if (leaf.depth > mostDepth) {
+        mostDepth = leaf.depth;
+      }
+    });
+
+    return mostDepth;
+  }
+
+  /**
+   * count tree nodes number
+   *
+   * @readonly
+   * @type {number}
+   * @memberof Tree
+   */
+  get size(): number {
+    return this.isEmpty ? 0 : this.traverse(SizeHandler);
   }
 
   /**
@@ -53,27 +129,24 @@ export class Tree {
    * @param {NodeHandler} handler - handler of node when traverse
    * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
    * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
+   * @returns {*}
    * @memberof Tree
    */
   static traverse(
-    inputNodes: TreeNode | TreeNode[],
+    inputNodes: null | TreeNode | TreeNode[],
     handler: NodeHandler,
     traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS,
     breakIfHandlerReturnTrue = true
-  ): void {
+  ): any {
     invariant(
       traverseType in TRAVERSE_TYPE,
       `not support "${traverseType}" traverse type, please choose 'BFS' or 'DFS' instead`
     );
     switch (traverseType) {
       case TRAVERSE_TYPE.BFS:
-        Tree.BFS(inputNodes, handler, breakIfHandlerReturnTrue);
-        break;
+        return Tree.BFS(inputNodes, handler, breakIfHandlerReturnTrue);
       case TRAVERSE_TYPE.DFS:
-        Tree.DFS(inputNodes, handler, breakIfHandlerReturnTrue);
-        break;
-      default:
-        break;
+        return Tree.DFS(inputNodes, handler, breakIfHandlerReturnTrue);
     }
   }
 
@@ -90,8 +163,13 @@ export class Tree {
     handler: NodeHandler,
     traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS,
     breakIfHandlerReturnTrue = true
-  ): void {
-    Tree.traverse(this._root, handler, traverseType, breakIfHandlerReturnTrue);
+  ): any {
+    return Tree.traverse(
+      this._root,
+      handler,
+      traverseType,
+      breakIfHandlerReturnTrue
+    );
   }
 
   /**
@@ -101,33 +179,36 @@ export class Tree {
    * @param {(TreeNode | TreeNode[])} inputNodes - input node or nodes
    * @param {NodeHandler} handler - handler of node when traverse
    * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
-   * @returns
+   * @returns {*}
    * @memberof Tree
    */
   static BFS(
-    inputNodes: TreeNode | TreeNode[],
+    inputNodes: null | TreeNode | TreeNode[],
     handler: NodeHandler,
     breakIfHandlerReturnTrue = true
-  ): void {
-    var nodes: TreeNode[] = [];
+  ): any {
+    if(inputNodes === null) {
+      return;
+    }
+
+    let nodes: TreeNode[] = [];
     if (isExist(inputNodes)) {
       nodes = ([] as TreeNode[]).concat(inputNodes);
     }
 
-    if (!inputNodes || !nodes.length) return;
-    var queue = new Queue<TreeNode>();
+    const queue = new Queue<TreeNode>();
     //先将第一层节点放入栈，倒序压入
     nodes.forEach(node => {
       queue.enqueue(node);
     });
 
-    var node;
-
+    let node;
+    let lastHandleResult;
     while (queue.length) {
       node = queue.dequeue(); // 弹出元素
 
-      let result = handler && handler(node);
-      if (!!breakIfHandlerReturnTrue && !!result) {
+      lastHandleResult = handler && handler(node, lastHandleResult);
+      if (!!breakIfHandlerReturnTrue && lastHandleResult === true) {
         break;
       }
 
@@ -138,6 +219,7 @@ export class Tree {
         });
       }
     }
+    return lastHandleResult;
   }
 
   /**
@@ -147,20 +229,22 @@ export class Tree {
    * @param {(TreeNode | TreeNode[])} inputNodes - input node or nodes
    * @param {NodeHandler} handler - handler of node when traverse
    * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
-   * @returns
+   * @returns {*}
    * @memberof Tree
    */
   static DFS(
-    inputNodes: TreeNode | TreeNode[],
+    inputNodes: null | TreeNode | TreeNode[],
     handler: NodeHandler,
     breakIfHandlerReturnTrue = true
-  ): void {
+  ): any {
+    if (inputNodes === null) {
+      return;
+    }
+
     var nodes: TreeNode[] = [];
     if (isExist(inputNodes)) {
       nodes = ([] as TreeNode[]).concat(inputNodes);
     }
-
-    if (!inputNodes || !nodes.length) return;
 
     var stack = new Stack<TreeNode>();
 
@@ -170,10 +254,11 @@ export class Tree {
     }
 
     var node;
+    let lastHandleResult;
     while (stack.length) {
       node = stack.pop(); // 弹出
-      let result = handler && handler(node);
-      if (!!breakIfHandlerReturnTrue && !!result) {
+      lastHandleResult = handler && handler(node, lastHandleResult);
+      if (!!breakIfHandlerReturnTrue && lastHandleResult === true) {
         break;
       }
 
@@ -184,6 +269,7 @@ export class Tree {
         }
       }
     }
+    return lastHandleResult;
   }
 
   /**
@@ -195,7 +281,7 @@ export class Tree {
    * @param {NodeMapper} mapper -  (currentNode, parentNode) param `currentNode` is the current node for mapper function, no need to handle its children attribute； param `parentNode` is refer to parent node of current
    * @param {boolean} [disableParent=false] - is usually set `true` when you use your custom `childrenAssigner` function, or other tree node
    * @param {ChildAssigner} [childrenAssigner=DEFAULT_ASSIGNER] - custom children assigner function
-   * @returns
+   * @returns {Tree}
    * @memberof Tree
    */
   static map(
@@ -208,13 +294,18 @@ export class Tree {
       isFunction(mapper),
       `param \`mapper\` ${mapper} should be function type`
     );
+    if(tree.isEmpty){
+      return new Tree();
+    }
     invariant(
       tree instanceof Tree,
       `param \`tree\` ${tree} should be Tree instance`
     );
-    var queue = new Queue(); // 基准队列
-    var queuePair = new Queue(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
-    const newRootNode = mapper(tree.root); // 克隆，防止修改原始对象
+
+
+    var queue = new Queue<TreeNode>(); // 基准队列
+    var queuePair = new Queue<TreeNode>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
+    const newRootNode = mapper(tree.root as TreeNode); // 克隆，防止修改原始对象
     const newTree = new Tree(newRootNode);
 
     invariant(
@@ -259,12 +350,18 @@ export class Tree {
   /**
    * map api of tree instance, just calling static map function;
    *
-   * @param {NodeMapper} mapper
-   * @returns
+   * @param {NodeMapper} mapper - mapper function
+   * @param {boolean} [disableParent=false] - is usually set `true` when you use your custom `childrenAssigner` function, or other tree node
+   * @param {ChildAssigner} [childrenAssigner=DEFAULT_ASSIGNER] - custom children assigner function
+   * @returns {Tree}
    * @memberof Tree
    */
-  map(mapper: NodeMapper): Tree {
-    return Tree.map(this, mapper);
+  map(
+    mapper: NodeMapper,
+    disableParent = false,
+    childrenAssigner: ChildAssigner = DEFAULT_ASSIGNER
+  ): Tree {
+    return Tree.map(this, mapper, disableParent, childrenAssigner);
   }
 
   /**
@@ -281,37 +378,37 @@ export class Tree {
 
   /**
    * add node to tree
+   * note: can only add to one parent, because one node only has one `parent` attribute
    *
    * @param {TreeNode} node - node want to add to current tree
    * @param {ConditionFunction} condition - node which satisfy the condition, as parent nodes
    * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
-   * @returns {TreeNode[]}
+   * @returns {TreeNode | null}
    * @memberof Tree
    */
   add(
     node: TreeNode,
     condition: ConditionFunction,
     traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
-  ): TreeNode[] {
+  ): TreeNode | null {
     invariant(
       node instanceof TreeNode,
       `param \`node\` ${node} should be tree-node instance`
     );
 
-    let parents: TreeNode[] = [];
+    let parent: TreeNode | null = null;
     let handler = function(currentNode) {
       if (condition(currentNode)) {
-        parents.push(currentNode);
+        parent = currentNode;
+        currentNode.add(node);
+        return true;
       }
+      return false;
     };
-    // 遍历
-    this.traverse(handler, traverseType);
+    // 遍历，添加完就完毕，不需要遍历完
+    this.traverse(handler, traverseType, true);
 
-    parents.forEach(currentNode => {
-      currentNode.add(node);
-    });
-
-    return parents;
+    return parent;
   }
 
   /**
@@ -326,18 +423,38 @@ export class Tree {
     condition: ConditionFunction,
     traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
   ): TreeNode[] {
-    let nodes: TreeNode[] = [];
-    let handler = function(currentNode) {
-      if (condition(currentNode)) {
-        nodes.push(currentNode);
-      }
-    };
-    // 遍历
-    this.traverse(handler, traverseType);
+    const nodes = this.find(condition, traverseType);
     nodes.forEach(currentNode => {
       currentNode.remove();
+
+      // 如果删除的是根节点，则让当前树置空
+      if(currentNode === this._root){
+        this._root = null;
+      }
     });
 
     return nodes;
+  }
+
+  /**
+   * find node from tree
+   *
+   * @param {ConditionFunction} condition - node which satisfy the condition, as parent nodes
+   * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
+   * @returns {TreeNode[]}
+   * @memberof Tree
+   */
+  find(
+    condition: ConditionFunction,
+    traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
+  ): TreeNode[] {
+    let handler = function(currentNode: TreeNode, lastResult: TreeNode[] = []) {
+      if (condition(currentNode)) {
+        lastResult.push(currentNode);
+      }
+      return lastResult;
+    };
+    // 遍历
+    return this.traverse(handler, traverseType) || [];
   }
 }
