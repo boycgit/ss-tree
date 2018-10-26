@@ -1,5 +1,6 @@
 import { TreeNode } from '../src/node/treenode';
-import { Tree, TRAVERSE_TYPE } from '../src/tree/tree';
+import { TRAVERSE_TYPE } from '../src/node/traverse';
+import { Tree } from '../src/tree/tree';
 import * as Chance from 'chance';
 import Comparator from 'ss-comparator';
 const chance = new Chance();
@@ -105,15 +106,23 @@ describe('[Tree] 构造函数  - 构造函数', () => {
     const root = tree.root as TreeNode;
     expect(root.data).toBe('one');
     expect(root.children.length).toBe(3);
-    expect(root.children[0].data).toBe('two');
-    expect(root.children[1].data).toBe('three');
-    expect(root.children[2].data).toBe('four');
+    expect((root.children[0] as TreeNode).data).toBe('two');
+    expect((root.children[1] as TreeNode).data).toBe('three');
+    expect((root.children[2] as TreeNode).data).toBe('four');
 
-    expect(root.children[0].children[0].data).toBe('five');
-    expect(root.children[0].children[1].data).toBe('six');
+    expect(((root.children[0] as TreeNode).children[0] as TreeNode).data).toBe(
+      'five'
+    );
+    expect(((root.children[0] as TreeNode).children[1] as TreeNode).data).toBe(
+      'six'
+    );
 
-    expect(root.children[2].children[0].data).toBe('seven');
-    expect(root.children[0].children[1].children[0].data).toBe('eight');
+    expect(((root.children[2] as TreeNode).children[0] as TreeNode).data).toBe(
+      'seven'
+    );
+    expect(
+      (((root.children[0] as TreeNode).children[1] as TreeNode).children[0] as TreeNode).data
+    ).toBe('eight');
   });
 
   test('通过 fromNode 方法构造的是全新的一棵树', () => {
@@ -133,6 +142,16 @@ describe('[Tree] 构造函数  - 构造函数', () => {
 
     expect(root1.children.length).toBe(3);
     expect(root2.children.length).toBe(3);
+  });
+
+  test('给空树的 root 属性赋值获得新的树', () => {
+    const nodes = BaseNodeFactory();
+    const tree = new Tree();
+    tree.root = nodes[0];
+    expect(tree).toBeInstanceOf(Tree);
+    const root = tree.root as TreeNode;
+    expect(root.data).toBe('one');
+    expect(root.children.length).toBe(3);
   });
 });
 

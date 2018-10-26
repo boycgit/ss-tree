@@ -14,11 +14,13 @@ function nodeCloner(data): any {
 // compare two node if equal or not
 export type NodeEqualComarator = (node: TreeNode) => boolean;
 
+export type NodeOrNull = TreeNode | null;
+
 export class TreeNode {
   data: any;
   meta: object;
   parent: TreeNode | null;
-  children: TreeNode[];
+  children: NodeOrNull[];
   comparator: Comparator;
   constructor(data?, comparator = new Comparator()) {
     this.data = data;
