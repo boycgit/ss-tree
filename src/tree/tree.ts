@@ -13,12 +13,26 @@ import {
 import { invariant, isExist } from '../lib';
 
 // condition function for get tree leaves
-export const IsLeafCondition = function(node: TreeNode) {
-  return node.children.length === 0;
+export const IsLeafCondition = function (node: NodeOrNull) {
+  if(!node){
+    return false;
+  } else {
+    const children = node.children;
+    // 子节点如果都是 null ，说明也是叶子节点
+    const nullCount = children.reduce((count, currentNode) =>{
+      if(currentNode === null){
+        count += 1;
+      }
+      return count;
+    }, 0);
+    return children.length === 0 || children.length === nullCount || false; 
+  }
 };
 
 export const SizeHandler = function(node: TreeNode, lastResult: number = 0) {
-  lastResult += 1;
+  if(node){
+    lastResult += 1;
+  }
   return lastResult;
 };
 
@@ -51,13 +65,13 @@ export class Tree {
    * using deep clone method
    *
    * @static
-   * @param {NodeOrNull} node
+   * @param {NodeOrNull} baseNode
    * @returns {Tree}
    * @memberof Tree
    */
-  static fromNode(node: NodeOrNull): Tree {
-    const newRoot = map(node, node => {
-      return node.clone();
+  static fromNode(baseNode: NodeOrNull): Tree {
+    const newRoot = map(baseNode, (node: NodeOrNull) => {
+      return !!node ? node.clone() : null;
     });
     return new Tree(newRoot);
   }
@@ -153,7 +167,7 @@ export class Tree {
    */
   clone(): Tree {
     return this.map(node => {
-      return node.clone();
+      return !!node ? node.clone() : null;
     });
   }
 

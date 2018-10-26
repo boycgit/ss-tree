@@ -1,6 +1,6 @@
 # ss-tree
 
-[![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php) [![npm version](https://badge.fury.io/js/ss-tree.svg)](https://badge.fury.io/js/ss-tree)
+[![Build Status](https://travis-ci.org/boycgit/ss-tree.svg?branch=master)](https://travis-ci.org/boycgit/ss-tree) [![Coverage Status](https://coveralls.io/repos/github/boycgit/ss-tree/badge.svg?branch=master)](https://coveralls.io/github/boycgit/ss-tree?branch=master) [![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php) [![npm version](https://badge.fury.io/js/ss-tree.svg)](https://badge.fury.io/js/ss-tree)
 
 Data Structure Serial -  Tree
 

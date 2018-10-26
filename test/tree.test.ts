@@ -9,16 +9,29 @@ const chance = new Chance();
  *
  * create base tree for test
     creates this tree
-    one
-    ├── two
-    │   ├── five
-    │   └── six
-    │       └── eight
-    ├── three
-    └── four
-        └── seven
-    
+                        ┌───┐
+                        │one│
+                        └───┘
+                          │
+           ┌──────────────┼─────────────┐
+           ▼              ▼             ▼
+        ┌────┐         ┌─────┐       ┌────┐
+        │two │         │three│       │four│
+        └────┘         └─────┘       └────┘
+          │                             │
+   ┌──────┴─────┐                       ▼
+   │            │                    ┌─────┐
+   ▼            ▼                    │seven│
+┌────┐       ┌────┐                  └─────┘
+│five│       │six │
+└────┘       └────┘
+               │
+               ▼
+           ┌───────┐
+           │ eight │
+           └───────┘
     */
+
 const BaseNodeFactory = function() {
   const nodes = [
     'one',
@@ -121,7 +134,8 @@ describe('[Tree] 构造函数  - 构造函数', () => {
       'seven'
     );
     expect(
-      (((root.children[0] as TreeNode).children[1] as TreeNode).children[0] as TreeNode).data
+      (((root.children[0] as TreeNode).children[1] as TreeNode)
+        .children[0] as TreeNode).data
     ).toBe('eight');
   });
 
@@ -567,5 +581,58 @@ describe('[Tree] 异常  - 抛出异常的情况', () => {
     expect(() => {
       tree.add(chance.string({ length: 5 }));
     }).toThrowError('should be tree-node instance');
+  });
+});
+
+describe('[Tree] 边界测试  - 空节点', () => {
+  /*
+ *
+ * 带有 null 节点的 树 结构如下
+                            ┌───┐
+                            │one│
+                            └───┘
+                              │
+            ┌─────────────────┼─────────────┐
+            ▼                 ▼             ▼
+         ┌────┐            ┌─────┐       ┌────┐
+         │two │            │three│       │four│
+         └────┘            └─────┘       └────┘
+            │                 │             │
+   ┌────────┼────────┐        ▼             ▼
+   │        │        │    ┌──────┐       ┌─────┐
+   ▼        ▼        ▼    │█null█│       │seven│
+┌────┐  ┌──────┐  ┌────┐  └──────┘       └─────┘
+│five│  │█null█│  │six │
+└────┘  └──────┘  └────┘
+                     │
+                     ▼
+                 ┌───────┐
+                 │ eight │
+                 └───────┘
+    */
+  let nodes, tree;
+  beforeEach(() => {
+    nodes = BaseNodeFactory();
+    nodes[1].children.splice(1, 0, null);
+    nodes[2].children.push(null);
+    tree = Tree.fromNode(nodes[0]);
+  });
+  test('null 节点并不计算在真实节点中', () => {
+    const datas = tree.leaves.map(l => l.data);
+    expect(tree.size).toBe(8);
+    expect(tree.depth).toBe(3);
+    expect(datas.length).toBe(4);
+    expect(datas).toEqual(['three', 'five', 'seven', 'eight']);
+  });
+
+  test('clone 函数会保留 null 节点', () => {
+    const cloneTree = tree.clone();
+    expect(cloneTree.size).toBe(8);
+    expect(cloneTree.depth).toBe(3);
+    const root = cloneTree.root;
+    expect((root.children[0] as TreeNode).children.length).toBe(3);
+    expect((root.children[0] as TreeNode).children[1]).toBeNull();
+    expect((root.children[1] as TreeNode).children.length).toBe(1);
+    expect((root.children[1] as TreeNode).children[0]).toBeNull();
   });
 });

@@ -8,10 +8,10 @@ export enum TRAVERSE_TYPE {
   DFS = 'DFS'
 }
 // handle current node when traverse
-export type NodeHandler = (node: TreeNode, lastHandleResult?: any) => any;
+export type NodeHandler = (node: NodeOrNull, lastHandleResult?: any) => any;
 
 // map current node to another
-export type NodeMapper = (node: TreeNode, parent?: TreeNode) => TreeNode;
+export type NodeMapper = (node: NodeOrNull, parent?: NodeOrNull) => NodeOrNull;
 
 // assinger child to parent in tree
 export type ChildAssigner = (parent: TreeNode, children: TreeNode[]) => void;
@@ -20,10 +20,12 @@ export type ChildAssigner = (parent: TreeNode, children: TreeNode[]) => void;
 export type ConditionFunction = (node: TreeNode) => boolean;
 
 export const DEFAULT_ASSIGNER: ChildAssigner = function(
-  parent: TreeNode,
-  children: TreeNode[]
+  parent: NodeOrNull,
+  children: NodeOrNull[]
 ) {
-  parent.children = children;
+  if (!!parent) {
+    parent.children = children;
+  }
 };
 
 /**
@@ -49,7 +51,7 @@ export function BFS(
     nodes = ([] as NodeOrNull[]).concat(inputNodes);
   }
 
-  const queue = new Queue<TreeNode>();
+  const queue = new Queue<NodeOrNull>();
   //先将第一层节点放入栈，倒序压入，判断节点是否存在
   nodes.forEach(node => {
     if (!!node) {
@@ -68,7 +70,7 @@ export function BFS(
     }
 
     //如果该节点有子节点，继续添加进入栈顶
-    if (node.children && node.children.length) {
+    if (node && node.children && node.children.length) {
       node.children.forEach(child => {
         queue.enqueue(child);
       });
@@ -100,7 +102,7 @@ export function DFS(
     nodes = ([] as NodeOrNull[]).concat(inputNodes);
   }
 
-  var stack = new Stack<TreeNode>();
+  var stack = new Stack<NodeOrNull>();
 
   // 将节点倒序入栈，判断节点是否存在
   for (var i = nodes.length; i > 0; i--) {
@@ -119,7 +121,7 @@ export function DFS(
       break;
     }
 
-    if (node.children && node.children.length) {
+    if (node && node.children && node.children.length) {
       // 将子节点倒序入栈
       for (let i = node.children.length; i > 0; i--) {
         stack.push(node.children[i - 1]);
@@ -187,8 +189,8 @@ export function map(
     `param \`inputNode\` ${inputNode} should be TreeNode instance`
   );
 
-  var queue = new Queue<TreeNode>(); // 基准队列
-  var queuePair = new Queue<TreeNode>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
+  var queue = new Queue<NodeOrNull>(); // 基准队列
+  var queuePair = new Queue<NodeOrNull>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
   const newTreeNode = mapper(inputNode); // 克隆，防止修改原始对象
 
   invariant(
@@ -207,12 +209,12 @@ export function map(
     nodePair = queuePair.dequeue(); // 同步队列出队
 
     //如果该节点有子节点，继续添加进入队列
-    if (node.children && node.children.length) {
+    if (!!node && node.children && node.children.length) {
       let newSubNodes = node.children.map(child => {
         let newChildNode = mapper(child, node);
 
         // 重新修改 parent 对象
-        if (!disableParent) {
+        if (!disableParent && newChildNode) {
           newChildNode.parent = nodePair;
         }
 
