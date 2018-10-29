@@ -8,7 +8,12 @@ export enum TRAVERSE_TYPE {
   DFS = 'DFS'
 }
 // handle current node when traverse
-export type NodeHandler = (node: NodeOrNull, lastHandleResult?: any) => any;
+export type NodeHandler = (
+  node: NodeOrNull,
+  lastHandleResult?: any,
+  levelNo?: number,
+  levelNodes?: NodeOrNull[]
+) => any;
 
 // map current node to another
 export type NodeMapper = (node: NodeOrNull, parent?: NodeOrNull) => NodeOrNull;
@@ -61,20 +66,31 @@ export function BFS(
 
   let node;
   let lastHandleResult;
+  let shouldBreakLoop = false;
+  let levelNo = 0; // 当前层数
   while (queue.length) {
-    node = queue.dequeue(); // 弹出元素
+    const levelNodes = queue.toArray(); // 获取当前层的节点
+    for (let index = 0; index < levelNodes.length; index++) {
+      node = queue.dequeue(); // 弹出元素
+      lastHandleResult =
+        handler && handler(node, lastHandleResult, levelNo, levelNodes);
 
-    lastHandleResult = handler && handler(node, lastHandleResult);
-    if (!!breakIfHandlerReturnTrue && lastHandleResult === true) {
+      // 如果需要中断循环，设置中断标志位
+      if (!!breakIfHandlerReturnTrue && lastHandleResult === true) {
+        shouldBreakLoop = true;
+        break; // 中断当前循环
+      }
+      //如果该节点有子节点，继续添加进入栈顶
+      if (node && node.children && node.children.length) {
+        node.children.forEach(child => {
+          queue.enqueue(child);
+        });
+      }
+    }
+    if (shouldBreakLoop) {
       break;
     }
-
-    //如果该节点有子节点，继续添加进入栈顶
-    if (node && node.children && node.children.length) {
-      node.children.forEach(child => {
-        queue.enqueue(child);
-      });
-    }
+    levelNo++; // 层数自增
   }
   return lastHandleResult;
 }
@@ -232,12 +248,21 @@ export function map(
   return newTreeNode;
 }
 
+/**
+ * find tree node match the given codition
+ *
+ * @export
+ * @param {(NodeOrNull | NodeOrNull[])} inputNodes - original tree node
+ * @param {ConditionFunction} condition - condition function use to match target node
+ * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
+ * @returns {TreeNode[]}
+ */
 export function find(
   inputNodes: NodeOrNull | NodeOrNull[],
   condition: ConditionFunction,
   traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
 ): TreeNode[] {
-  let handler = function(currentNode: TreeNode, lastResult: TreeNode[] = []) {
+  const handler = function(currentNode: TreeNode, lastResult: TreeNode[] = []) {
     if (condition(currentNode)) {
       lastResult.push(currentNode);
     }
@@ -245,4 +270,36 @@ export function find(
   };
   // 遍历
   return traverse(inputNodes, handler, traverseType) || [];
+}
+
+export interface LevelInfo {
+  depth: number;
+  levels: NodeOrNull[][];
+}
+
+/**
+ * get level info of tree, using BFS
+ *
+ * @export
+ * @param {(NodeOrNull | NodeOrNull[])} inputNodes  - original tree node
+ * @returns {LevelInfo}
+ */
+export function getLevelInfo(inputNodes: NodeOrNull | NodeOrNull[]): LevelInfo {
+  const levelInfo = { depth: 0, levels: [] }; // 相当于 immutable 化;
+  if (!inputNodes) return levelInfo;
+  const handler = function(
+    currentNode: TreeNode,
+    lastResult: LevelInfo = levelInfo,
+    levelNo: number,
+    levelNodes: NodeOrNull[]
+  ) {
+    // 只在层级为 0 或者层级不一样的时候才更新
+    if (levelNo === 0 || levelNo !== lastResult.depth) {
+      lastResult.depth = levelNo;
+      lastResult.levels.push(levelNodes);
+    }
+    return lastResult;
+  };
+
+  return traverse(inputNodes, handler, TRAVERSE_TYPE.BFS);
 }

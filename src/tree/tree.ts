@@ -3,6 +3,7 @@ import {
   map,
   traverse,
   find,
+  getLevelInfo,
   NodeHandler,
   NodeMapper,
   ChildAssigner,
@@ -13,24 +14,24 @@ import {
 import { invariant, isExist } from '../lib';
 
 // condition function for get tree leaves
-export const IsLeafCondition = function (node: NodeOrNull) {
-  if(!node){
+export const IsLeafCondition = function(node: NodeOrNull) {
+  if (!node) {
     return false;
   } else {
     const children = node.children;
     // 子节点如果都是 null ，说明也是叶子节点
-    const nullCount = children.reduce((count, currentNode) =>{
-      if(currentNode === null){
+    const nullCount = children.reduce((count, currentNode) => {
+      if (currentNode === null) {
         count += 1;
       }
       return count;
     }, 0);
-    return children.length === 0 || children.length === nullCount || false; 
+    return children.length === 0 || children.length === nullCount || false;
   }
 };
 
 export const SizeHandler = function(node: TreeNode, lastResult: number = 0) {
-  if(node){
+  if (node) {
     lastResult += 1;
   }
   return lastResult;
@@ -96,16 +97,20 @@ export class Tree {
    * @memberof Tree
    */
   get depth(): number {
-    const leaves = this.leaves;
-    let mostDepth = 0;
+    const levelInfo = getLevelInfo(this.root);
+    return levelInfo.depth;
+  }
 
-    leaves.forEach(leaf => {
-      if (leaf.depth > mostDepth) {
-        mostDepth = leaf.depth;
-      }
-    });
-
-    return mostDepth;
+  /**
+   * get per level nodes
+   *
+   * @readonly
+   * @type {NodeOrNull[][]}
+   * @memberof Tree
+   */
+  get levels(): NodeOrNull[][]{
+    const levelInfo = getLevelInfo(this.root);
+    return levelInfo.levels; 
   }
 
   /**

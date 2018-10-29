@@ -218,8 +218,6 @@ describe('[Tree] 属性  - depth 表示树的深度', () => {
     expect(emptyTree.depth).toBe(0);
   });
   test('普通树的 depth 属性', () => {
-    nodes = BaseNodeFactory();
-    tree = Tree.fromNode(nodes[0]);
     // 测试 leaves 属性
     expect(tree.depth).toBe(3);
   });
@@ -227,6 +225,30 @@ describe('[Tree] 属性  - depth 表示树的深度', () => {
   test('获取子树的 depth 属性', () => {
     const subTree = Tree.fromNode(nodes[3]);
     expect(subTree.depth).toBe(1);
+  });
+});
+
+describe('[Tree] 属性  - levels 表示树的每一层节点集合', () => {
+  let nodes, tree;
+  beforeEach(() => {
+    nodes = BaseNodeFactory();
+    tree = Tree.fromNode(nodes[0]);
+  });
+  test('空树的 levels 属性', () => {
+    const emptyTree = new Tree();
+    expect(emptyTree.levels).toEqual([]);
+  });
+  test('普通树的 levels 属性', () => {
+    // 测试 leaves 属性
+    const levelsData = tree.levels.map(levels => {
+      return levels.map(node => node.data);
+    });
+    expect(levelsData).toEqual([
+      ['one'],
+      ['two', 'three', 'four'],
+      ['five', 'six', 'seven'],
+      ['eight']
+    ]);
   });
 });
 
@@ -617,6 +639,20 @@ describe('[Tree] 边界测试  - 空节点', () => {
     nodes[2].children.push(null);
     tree = Tree.fromNode(nodes[0]);
   });
+
+  test('打印 levels 属性的时候也会打印 null', () => {
+    // 测试 leaves 属性
+    const levelsData = tree.levels.map(levels => {
+      return levels.map(node => node ? node.data : null);
+    });
+    expect(levelsData).toEqual([
+      ['one'],
+      ['two', 'three', 'four'],
+      ['five', null, 'six', null, 'seven'],
+      ['eight']
+    ]);
+  });
+
   test('null 节点并不计算在真实节点中', () => {
     const datas = tree.leaves.map(l => l.data);
     expect(tree.size).toBe(8);
