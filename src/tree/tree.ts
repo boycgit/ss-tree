@@ -1,9 +1,10 @@
-import { TreeNode, NodeOrNull } from '../node/treenode';
+import { TreeNode, NodeOrNull, NodeLikeObject } from '../node/treenode';
 import {
   map,
   traverse,
   find,
   getLevelInfo,
+  toJSON,
   NodeHandler,
   NodeMapper,
   ChildAssigner,
@@ -108,9 +109,9 @@ export class Tree {
    * @type {NodeOrNull[][]}
    * @memberof Tree
    */
-  get levels(): NodeOrNull[][]{
+  get levels(): NodeOrNull[][] {
     const levelInfo = getLevelInfo(this.root);
-    return levelInfo.levels; 
+    return levelInfo.levels;
   }
 
   /**
@@ -250,5 +251,26 @@ export class Tree {
   ): TreeNode[] {
     // 遍历
     return find(this.root, condition, traverseType);
+  }
+
+  toString(): string {
+    const { depth, levels } = getLevelInfo(this.root);
+    let count = 0;
+    const levelsData = levels.map(levels => {
+      return levels.map(node => {
+        if (node) {
+          count++;
+          return node.data;
+        } else {
+          return null;
+        }
+      });
+    });
+    return `[tree] tree: size: ${count}, depth: ${depth}
+    \n tree level data: ${JSON.stringify(levelsData)}`;
+  }
+
+  toJSON(): NodeLikeObject {
+    return toJSON(this.root);
   }
 }

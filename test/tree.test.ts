@@ -606,6 +606,71 @@ describe('[Tree] 异常  - 抛出异常的情况', () => {
   });
 });
 
+describe('[Tree] 输出  - toString', () => {
+  let nodes, tree;
+  beforeEach(() => {
+    nodes = BaseNodeFactory();
+    tree = Tree.fromNode(nodes[0]);
+  });
+
+  test('空树的 toString 方法调用', () => {
+    const emptyTree = new Tree();
+    expect('' + emptyTree).toContain('tree: size: 0, depth: 0');
+    expect('' + emptyTree).toContain('tree level data: []');
+  });
+  test('toString 以层级方式输出信息', () => {
+    expect('' + tree).toContain('tree: size: 8, depth: 3');
+    expect('' + tree).toContain(
+      'tree level data: [["one"],["two","three","four"],["five","six","seven"],["eight"]]'
+    );
+  });
+});
+
+describe('[Tree] 输出  - toJSON', () => {
+  let nodes, tree;
+  beforeEach(() => {
+    nodes = BaseNodeFactory();
+    tree = Tree.fromNode(nodes[0]);
+  });
+
+  test('空树的 toJSON 方法调用', () => {
+    const emptyTree = new Tree();
+    expect(emptyTree.toJSON()).toEqual({});
+  });
+  test('数据为 null 的节点输出', () => {
+    const emptyTree = new Tree(new TreeNode(null));
+    expect(emptyTree.toJSON()).toEqual({
+      data: null, meta: {}, children: []});
+  });
+
+  test('toJSON 以 JSON 格式输出信息', () => {
+    expect(tree.toJSON()).toEqual({
+      data: 'one',
+      meta: {},
+      children: [
+        {
+          data: 'two',
+          meta: {},
+          children: [
+            { data: 'five', meta: {}, children: [] },
+            {
+              data: 'six',
+              meta: {},
+              children: [{ data: 'eight', meta: {}, children: [] }]
+            }
+          ]
+        },
+        { data: 'three', meta: {}, children: [] },
+        {
+          data: 'four',
+          meta: {},
+          children: [{ data: 'seven', meta: {}, children: [] }]
+        }
+      ]
+    });
+  });
+});
+
 describe('[Tree] 边界测试  - 空节点', () => {
   /*
  *
@@ -643,7 +708,7 @@ describe('[Tree] 边界测试  - 空节点', () => {
   test('打印 levels 属性的时候也会打印 null', () => {
     // 测试 leaves 属性
     const levelsData = tree.levels.map(levels => {
-      return levels.map(node => node ? node.data : null);
+      return levels.map(node => (node ? node.data : null));
     });
     expect(levelsData).toEqual([
       ['one'],
@@ -653,12 +718,20 @@ describe('[Tree] 边界测试  - 空节点', () => {
     ]);
   });
 
-  test('null 节点并不计算在真实节点中', () => {
+  test('null 节点并不计算在真实节点中，但在输出的时候会保留', () => {
     const datas = tree.leaves.map(l => l.data);
     expect(tree.size).toBe(8);
     expect(tree.depth).toBe(3);
     expect(datas.length).toBe(4);
     expect(datas).toEqual(['three', 'five', 'seven', 'eight']);
+    expect('' + tree).toContain('tree: size: 8, depth: 3');
+    expect('' + tree).toContain(
+      'tree level data: [["one"],["two","three","four"],["five",null,"six",null,"seven"],["eight"]]'
+    );
+  });
+
+  test('null 节点在 toJSON 的时候，也会被过滤掉', () => {
+    expect(tree.toJSON()).toEqual({ "children": [{ "children": [{ "children": [], "data": "five", "meta": {} }, { "children": [] }, { "children": [{ "children": [], "data": "eight", "meta": {} }], "data": "six", "meta": {} }], "data": "two", "meta": {} }, { "children": [{ "children": [] }], "data": "three", "meta": {} }, { "children": [{ "children": [], "data": "seven", "meta": {} }], "data": "four", "meta": {} }], "data": "one", "meta": {} });
   });
 
   test('clone 函数会保留 null 节点', () => {

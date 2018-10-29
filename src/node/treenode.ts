@@ -11,6 +11,14 @@ function nodeCloner(data): any {
   }
 }
 
+// object which likes node structure
+export interface NodeLikeObject {
+  children?: NodeLikeObject[];
+  parent?: NodeLikeObject;
+  data?: any;
+  meta?: object;
+}
+
 // compare two node if equal or not
 export type NodeEqualComarator = (node: TreeNode) => boolean;
 
@@ -35,14 +43,14 @@ export class TreeNode {
 
   /**
    *  depth of current node
-   * just count how many parent 
+   * just count how many parent
    * @readonly
    * @memberof TreeNode
    */
-  get depth(): number{
+  get depth(): number {
     let count = 0;
     let parent = this.parent;
-    while(parent){
+    while (parent) {
       count += 1;
       parent = parent.parent;
     }
@@ -78,7 +86,10 @@ export class TreeNode {
    * @memberof TreeNode
    */
   add(node: TreeNode): TreeNode {
-    invariant(node instanceof TreeNode, `${node} should be instace of TreeNode`);
+    invariant(
+      node instanceof TreeNode,
+      `${node} should be instace of TreeNode`
+    );
     if (!~this.children.indexOf(node)) {
       this.children.push(node);
       node.parent = this;
@@ -137,5 +148,19 @@ export class TreeNode {
     return `[tree-node] data: ${JSON.stringify(
       this.data
     )}, meta: ${JSON.stringify(this.meta)}`;
+  }
+
+  /**
+   * toJSON implemention
+   *
+   * @returns {NodeLikeObject}
+   * @memberof TreeNode
+   */
+  toJSON(): NodeLikeObject {
+    const nodeClone = this.clone();
+    return {
+      data: nodeClone.data,
+      meta: this.meta
+    };
   }
 }

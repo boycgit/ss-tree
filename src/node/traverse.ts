@@ -1,4 +1,4 @@
-import { TreeNode, NodeOrNull } from './treenode';
+import { TreeNode, NodeOrNull, NodeLikeObject } from './treenode';
 import { invariant, isExist, isFunction } from '../lib';
 import Stack from 'ss-stack';
 import Queue from 'ss-queue';
@@ -16,7 +16,10 @@ export type NodeHandler = (
 ) => any;
 
 // map current node to another
-export type NodeMapper = (node: NodeOrNull, parent?: NodeOrNull) => NodeOrNull;
+export type NodeMapper = (
+  node: NodeOrNull,
+  parent?: NodeOrNull
+) => NodeOrNull | NodeLikeObject;
 
 // assinger child to parent in tree
 export type ChildAssigner = (parent: TreeNode, children: TreeNode[]) => void;
@@ -185,14 +188,14 @@ export function traverse(
  * @param {NodeMapper} mapper -  (currentNode, parentNode) param `currentNode` is the current node for mapper function, no need to handle its children attribute； param `parentNode` is refer to parent node of current
  * @param {boolean} [disableParent=false] - is usually set `true` when you use your custom `childrenAssigner` function, or other tree node
  * @param {ChildAssigner} [childrenAssigner=DEFAULT_ASSIGNER] - custom children assigner function
- * @returns {(NodeOrNull)}
+ * @returns {(NodeOrNull | NodeLikeObject)}
  */
 export function map(
   inputNode: NodeOrNull,
   mapper: NodeMapper,
   disableParent = false,
   childrenAssigner: ChildAssigner = DEFAULT_ASSIGNER
-): NodeOrNull {
+): NodeOrNull | NodeLikeObject {
   invariant(
     isFunction(mapper),
     `param \`mapper\` ${mapper} should be function type`
@@ -206,7 +209,7 @@ export function map(
   );
 
   var queue = new Queue<NodeOrNull>(); // 基准队列
-  var queuePair = new Queue<NodeOrNull>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
+  var queuePair = new Queue<NodeOrNull | NodeLikeObject>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
   const newTreeNode = mapper(inputNode); // 克隆，防止修改原始对象
 
   invariant(
@@ -272,6 +275,12 @@ export function find(
   return traverse(inputNodes, handler, traverseType) || [];
 }
 
+/**
+ * interface of tree level object
+ *
+ * @export
+ * @interface LevelInfo
+ */
 export interface LevelInfo {
   depth: number;
   levels: NodeOrNull[][];
@@ -302,4 +311,14 @@ export function getLevelInfo(inputNodes: NodeOrNull | NodeOrNull[]): LevelInfo {
   };
 
   return traverse(inputNodes, handler, TRAVERSE_TYPE.BFS);
+}
+
+export function toJSON(inputNode: NodeOrNull): NodeLikeObject {
+  const root: NodeLikeObject = {};
+  if (!inputNode) return root;
+  const mapper: NodeMapper = function(node: NodeOrNull, parent?: NodeOrNull) {
+    return !!node ? node.toJSON(): {};
+  };
+
+  return map(inputNode, mapper, true) as NodeLikeObject;
 }
