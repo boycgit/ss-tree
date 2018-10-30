@@ -29,6 +29,23 @@ describe('[TreeNode] 构造函数  - 构造函数', () => {
   });
 });
 
+describe('[TreeNode] 方法 - setData', () => {
+  test('空节点赋值', () => {
+    const node = new TreeNode();
+    node.setData('jack');
+    expect(node).toBeInstanceOf(TreeNode);
+    expect(node.data).toBe('jack');
+    expect(node.parent).toBeNull();
+    expect(node.meta).toEqual({});
+  });
+  test('可以链式更新数据', () => {
+    const node = new TreeNode('jack');
+    expect(node.data).toBe('jack');
+    node.setData('jane').setData('david');
+    expect(node.data).toBe('david');
+  });
+});
+
 describe('[TreeNode] 方法 - clone 方法', () => {
   const david = {
     name: 'jack',

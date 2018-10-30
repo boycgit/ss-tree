@@ -282,15 +282,16 @@ describe('[Tree] 方法  - traverse 方法', () => {
     tree = Tree.fromNode(nodes[0]);
   });
 
-  test('空树的 BFS 和 DFS 遍历，不会执行 handler 函数', () => {
+  test('空树的 BFS 和 DFS 遍历，也会执行一次 handler 函数', () => {
     const emptyTree = new Tree();
     const mockFn = jest.fn();
 
     expect(emptyTree.traverse(mockFn)).toBeUndefined();
-    expect(mockFn).not.toHaveBeenCalled();
+    expect(mockFn).toHaveBeenCalledTimes(1);
 
+    mockFn.mockClear();
     expect(emptyTree.traverse(mockFn, TRAVERSE_TYPE.DFS)).toBeUndefined();
-    expect(mockFn).not.toHaveBeenCalled();
+    expect(mockFn).toHaveBeenCalledTimes(1);
   });
 
   test('BFS 方法遍历', () => {
@@ -570,7 +571,7 @@ describe('[Tree] 方法  - remove 方法', () => {
 
   test('没有满足节点的，返回空数组', () => {
     const condition = function(node: TreeNode) {
-      return node.data.length === 3;
+      return node && node.data && node.data.length === 3 || false;
     };
     const nodes1 = tree.remove(condition, TRAVERSE_TYPE.DFS);
 
@@ -640,7 +641,10 @@ describe('[Tree] 输出  - toJSON', () => {
   test('数据为 null 的节点输出', () => {
     const emptyTree = new Tree(new TreeNode(null));
     expect(emptyTree.toJSON()).toEqual({
-      data: null, meta: {}, children: []});
+      data: null,
+      meta: {},
+      children: []
+    });
   });
 
   test('toJSON 以 JSON 格式输出信息', () => {
@@ -731,7 +735,31 @@ describe('[Tree] 边界测试  - 空节点', () => {
   });
 
   test('null 节点在 toJSON 的时候，也会被过滤掉', () => {
-    expect(tree.toJSON()).toEqual({ "children": [{ "children": [{ "children": [], "data": "five", "meta": {} }, { "children": [] }, { "children": [{ "children": [], "data": "eight", "meta": {} }], "data": "six", "meta": {} }], "data": "two", "meta": {} }, { "children": [{ "children": [] }], "data": "three", "meta": {} }, { "children": [{ "children": [], "data": "seven", "meta": {} }], "data": "four", "meta": {} }], "data": "one", "meta": {} });
+    expect(tree.toJSON()).toEqual({
+      children: [
+        {
+          children: [
+            { children: [], data: 'five', meta: {} },
+            { children: [] },
+            {
+              children: [{ children: [], data: 'eight', meta: {} }],
+              data: 'six',
+              meta: {}
+            }
+          ],
+          data: 'two',
+          meta: {}
+        },
+        { children: [{ children: [] }], data: 'three', meta: {} },
+        {
+          children: [{ children: [], data: 'seven', meta: {} }],
+          data: 'four',
+          meta: {}
+        }
+      ],
+      data: 'one',
+      meta: {}
+    });
   });
 
   test('clone 函数会保留 null 节点', () => {

@@ -1,18 +1,38 @@
 import { TreeNode, NodeOrNull, NodeLikeObject } from './treenode';
-import { invariant, isExist, isFunction } from '../lib';
+import { BinaryTreeNode, BinaryNodeOrNull } from './binarytreenode';
+import { invariant, isFunction } from '../lib';
 import Stack from 'ss-stack';
 import Queue from 'ss-queue';
 
+/**
+ * traverse type
+ *
+ * @export
+ * @enum {number}
+ */
 export enum TRAVERSE_TYPE {
   BFS = 'BFS',
   DFS = 'DFS'
 }
+
+/**
+ * deep first order type
+ *
+ * @export
+ * @enum {number}
+ */
+export enum DFS_ORDER_TYPE {
+  PRE = 'PRE_ORDER',
+  IN = 'IN_ORDER',
+  POST = 'POST_ORDER'
+}
+
 // handle current node when traverse
 export type NodeHandler = (
   node: NodeOrNull,
   lastHandleResult?: any,
-  levelNo?: number,
-  levelNodes?: NodeOrNull[]
+  levelNo?: number, // only for BFS
+  levelNodes?: NodeOrNull[] // only for BFS
 ) => any;
 
 // map current node to another
@@ -40,32 +60,20 @@ export const DEFAULT_ASSIGNER: ChildAssigner = function(
  * breadth first search, 广度优先搜索
  *
  * @export
- * @param {( NodeOrNull | NodeOrNull[])} inputNodes - input node or nodes
+ * @param {( NodeOrNull)} inputNode - input node or nodes
  * @param {NodeHandler} handler - handler of node when traverse
  * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
  * @returns {*}
  */
 export function BFS(
-  inputNodes: NodeOrNull | NodeOrNull[],
+  inputNode: NodeOrNull,
   handler: NodeHandler,
   breakIfHandlerReturnTrue = true
 ): any {
-  if (inputNodes === null) {
-    return;
-  }
-
-  let nodes: NodeOrNull[] = [];
-  if (isExist(inputNodes)) {
-    nodes = ([] as NodeOrNull[]).concat(inputNodes);
-  }
-
   const queue = new Queue<NodeOrNull>();
+
   //先将第一层节点放入栈，倒序压入，判断节点是否存在
-  nodes.forEach(node => {
-    if (!!node) {
-      queue.enqueue(node);
-    }
-  });
+  queue.enqueue(inputNode);
 
   let node;
   let lastHandleResult;
@@ -102,34 +110,60 @@ export function BFS(
  * depth first search, 深度优先搜索
  *
  * @export
- * @param {(NodeOrNull | NodeOrNull[])} inputNodes - input node or nodes
+ * @param {(NodeOrNull)} inputNode - input node or nodes
  * @param {NodeHandler} handler - handler of node when traverse
  * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
+ * @param {DFS_ORDER_TYPE} [type=DFS_ORDER_TYPE.PRE] - dfs traverse type
  * @returns {*}
  */
 export function DFS(
-  inputNodes: NodeOrNull | NodeOrNull[],
+  inputNode: NodeOrNull,
+  handler: NodeHandler,
+  breakIfHandlerReturnTrue = true,
+  type: DFS_ORDER_TYPE = DFS_ORDER_TYPE.PRE
+): any {
+  // 策略模式，普通多叉树支持前序和后序，二叉树还支持中序遍历
+  switch (type) {
+    case DFS_ORDER_TYPE.PRE:
+      return DFS_PRE_ORDER(inputNode, handler, breakIfHandlerReturnTrue);
+    case DFS_ORDER_TYPE.IN:
+      invariant(
+        inputNode instanceof BinaryTreeNode,
+        'in-order traverse only  suitable for BinaryTreeNode, not for normal type treenode'
+      );
+      return DFS_IN_ORDER(
+        inputNode as BinaryTreeNode,
+        handler,
+        breakIfHandlerReturnTrue
+      );
+    case DFS_ORDER_TYPE.POST:
+      return DFS_POST_ORDER(inputNode, handler, breakIfHandlerReturnTrue);
+    default:
+      invariant(
+        false,
+        `current not support traverse type: ${type}, please use pre-order、in-order or post-order `
+      );
+      break;
+  }
+}
+
+/**
+ * depth first search, 深度优先搜索，前序遍历
+ *
+ * @param {NodeOrNull} inputNode
+ * @param {NodeHandler} handler
+ * @param {boolean} [breakIfHandlerReturnTrue=true]
+ * @returns
+ */
+
+function DFS_PRE_ORDER(
+  inputNode: NodeOrNull,
   handler: NodeHandler,
   breakIfHandlerReturnTrue = true
-): any {
-  if (inputNodes === null) {
-    return;
-  }
-
-  var nodes: NodeOrNull[] = [];
-  if (isExist(inputNodes)) {
-    nodes = ([] as NodeOrNull[]).concat(inputNodes);
-  }
-
+) {
   var stack = new Stack<NodeOrNull>();
-
   // 将节点倒序入栈，判断节点是否存在
-  for (var i = nodes.length; i > 0; i--) {
-    const currentNode = nodes[i - 1];
-    if (!!currentNode) {
-      stack.push(currentNode);
-    }
-  }
+  stack.push(inputNode);
 
   var node;
   let lastHandleResult;
@@ -151,17 +185,99 @@ export function DFS(
 }
 
 /**
+ * depth first search, 深度优先搜索，后续遍历，双栈遍历
+ * 算法来自：https://www.geeksforgeeks.org/iterative-postorder-traversal/
+ *
+ * @param {NodeOrNull} inputNode
+ * @param {NodeHandler} handler
+ * @param {boolean} [breakIfHandlerReturnTrue=true]
+ * @returns
+ */
+function DFS_POST_ORDER(
+  inputNode: NodeOrNull,
+  handler: NodeHandler,
+  breakIfHandlerReturnTrue = true
+) {
+  // Create two stacks
+  var stack = new Stack<NodeOrNull>();
+  var secondStack = new Stack<NodeOrNull>();
+
+  let lastHandleResult;
+  let node;
+  // push root to first stack
+  stack.push(inputNode);
+  while (stack.length) {
+    // Pop a node from first stack and push it to second stack
+    node = stack.pop();
+    secondStack.push(node);
+
+    // Push left and right children of removed item to s1
+    if (node && node.children) {
+      node.children.forEach(child => {
+        stack.push(child);
+      });
+    }
+  }
+
+  // pop all elements of second stack
+  while (secondStack.length) {
+    node = secondStack.pop();
+    lastHandleResult = handler && handler(node, lastHandleResult);
+    if (!!breakIfHandlerReturnTrue && lastHandleResult === true) {
+      break;
+    }
+  }
+
+  return lastHandleResult;
+}
+
+/**
+ * depth first search, 深度优先搜索，中序遍历
+ * from: https://www.geeksforgeeks.org/inorder-tree-traversal-without-recursion/
+ *
+ * @param {BinaryNodeOrNull} nodes
+ * @param {NodeHandler} handler
+ * @param {boolean} [breakIfHandlerReturnTrue=true]
+ * @returns
+ */
+function DFS_IN_ORDER(
+  inputNode: BinaryNodeOrNull,
+  handler: NodeHandler,
+  breakIfHandlerReturnTrue = true
+) {
+  var stack = new Stack<BinaryNodeOrNull>();
+  var node: BinaryNodeOrNull = inputNode;
+  let lastHandleResult;
+  while (node || stack.length) {
+    while (!!node) {
+      stack.push(node);
+      node = node.left;
+    }
+    if (stack.length) {
+      node = stack.pop() as BinaryNodeOrNull;
+      lastHandleResult = handler && handler(node, lastHandleResult);
+      if (!!breakIfHandlerReturnTrue && lastHandleResult === true) {
+        break;
+      }
+
+      node = node && node.right;
+    }
+  }
+  return lastHandleResult;
+}
+
+/**
  * traverse api, call static DFS or BFS inner
  *
  * @export
- * @param {(NodeOrNull | NodeOrNull[])} inputNodes - input node or nodes
+ * @param {(NodeOrNull)} inputNodes - input node or nodes
  * @param {NodeHandler} handler - handler of node when traverse
  * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
  * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
  * @returns {*}
  */
 export function traverse(
-  inputNodes: NodeOrNull | NodeOrNull[],
+  inputNode: NodeOrNull,
   handler: NodeHandler,
   traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS,
   breakIfHandlerReturnTrue = true
@@ -172,9 +288,9 @@ export function traverse(
   );
   switch (traverseType) {
     case TRAVERSE_TYPE.BFS:
-      return BFS(inputNodes, handler, breakIfHandlerReturnTrue);
+      return BFS(inputNode, handler, breakIfHandlerReturnTrue);
     case TRAVERSE_TYPE.DFS:
-      return DFS(inputNodes, handler, breakIfHandlerReturnTrue);
+      return DFS(inputNode, handler, breakIfHandlerReturnTrue);
   }
 }
 
@@ -255,13 +371,13 @@ export function map(
  * find tree node match the given codition
  *
  * @export
- * @param {(NodeOrNull | NodeOrNull[])} inputNodes - original tree node
+ * @param {(NodeOrNull)} inputNode - original tree node
  * @param {ConditionFunction} condition - condition function use to match target node
  * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
  * @returns {TreeNode[]}
  */
 export function find(
-  inputNodes: NodeOrNull | NodeOrNull[],
+  inputNode: NodeOrNull,
   condition: ConditionFunction,
   traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
 ): TreeNode[] {
@@ -272,7 +388,7 @@ export function find(
     return lastResult;
   };
   // 遍历
-  return traverse(inputNodes, handler, traverseType) || [];
+  return traverse(inputNode, handler, traverseType) || [];
 }
 
 /**
@@ -290,18 +406,24 @@ export interface LevelInfo {
  * get level info of tree, using BFS
  *
  * @export
- * @param {(NodeOrNull | NodeOrNull[])} inputNodes  - original tree node
+ * @param {(NodeOrNull)} inputNode  - original tree node
  * @returns {LevelInfo}
  */
-export function getLevelInfo(inputNodes: NodeOrNull | NodeOrNull[]): LevelInfo {
+export function getLevelInfo(inputNode: NodeOrNull): LevelInfo {
   const levelInfo = { depth: 0, levels: [] }; // 相当于 immutable 化;
-  if (!inputNodes) return levelInfo;
+  if (!inputNode) return levelInfo;
   const handler = function(
     currentNode: TreeNode,
     lastResult: LevelInfo = levelInfo,
     levelNo: number,
     levelNodes: NodeOrNull[]
   ) {
+    // 有一种边界情况，最后一层的节点全部都是 null（说的就是二叉树的最后一层），这个时候最后一层就不应算进高度
+    // 为了性能考虑，不需要去判断 levelNodes 是否全是 [null, ..., null] 形式的，如果当前节点是 null，直接略过此次操作
+    if (currentNode === null) {
+      return lastResult;
+    }
+
     // 只在层级为 0 或者层级不一样的时候才更新
     if (levelNo === 0 || levelNo !== lastResult.depth) {
       lastResult.depth = levelNo;
@@ -310,14 +432,14 @@ export function getLevelInfo(inputNodes: NodeOrNull | NodeOrNull[]): LevelInfo {
     return lastResult;
   };
 
-  return traverse(inputNodes, handler, TRAVERSE_TYPE.BFS);
+  return traverse(inputNode, handler, TRAVERSE_TYPE.BFS);
 }
 
 export function toJSON(inputNode: NodeOrNull): NodeLikeObject {
   const root: NodeLikeObject = {};
   if (!inputNode) return root;
   const mapper: NodeMapper = function(node: NodeOrNull, parent?: NodeOrNull) {
-    return !!node ? node.toJSON(): {};
+    return !!node ? node.toJSON() : {};
   };
 
   return map(inputNode, mapper, true) as NodeLikeObject;

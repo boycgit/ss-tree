@@ -27,7 +27,7 @@ export type NodeOrNull = TreeNode | null;
 export class TreeNode {
   data: any;
   meta: object;
-  parent: TreeNode | null;
+  parent: NodeOrNull;
   children: NodeOrNull[];
   comparator: Comparator;
   constructor(data?, comparator = new Comparator()) {
@@ -66,6 +66,18 @@ export class TreeNode {
    */
   get level(): number {
     return this.depth + 1;
+  }
+
+  /**
+   * update data value
+   *
+   * @param {*} data
+   * @returns {TreeNode}
+   * @memberof TreeNode
+   */
+  setData(data): TreeNode {
+    this.data = data;
+    return this;
   }
 
   /**
