@@ -11,7 +11,7 @@ describe('[TreeNode] 构造函数  - 构造函数', () => {
     expect(node.parent).toBeNull();
     expect(node.meta).toEqual({});
     expect(node.children).toEqual([]);
-    expect(node.comparator).toBeInstanceOf(Comparator);
+    expect(node.compare).toBeInstanceOf(Function);
   });
 
   test('可以传入数字或者字符串作为数据', () => {
@@ -25,7 +25,7 @@ describe('[TreeNode] 构造函数  - 构造函数', () => {
     expect(node.parent).toBeNull();
     expect(node.meta).toEqual({});
     expect(node.children).toEqual([]);
-    expect(node.comparator).toBeInstanceOf(Comparator);
+    expect(node.compare).toBeInstanceOf(Function);
   });
 });
 
@@ -285,7 +285,7 @@ describe('[TreeNode] 方法 - removeChild 方法', () => {
     expect(node1.children.length).toBe(0);
   });
 
-  describe('复杂数据情况下，最好指定 comparator', () => {
+  describe('复杂数据情况下，最好指定 compare function', () => {
     const david = {
       name: 'jack',
       gender: 'male',
@@ -301,10 +301,9 @@ describe('[TreeNode] 方法 - removeChild 方法', () => {
       gender: 'male',
       age: chance.age({ type: 'senior' })
     };
-    const personComparator = function(a: TreeNode, b: TreeNode): CompareResult {
+    const personCompare = function(a: TreeNode, b: TreeNode): CompareResult {
       return Comparator.defaultCompareFunction(a.data.name, b.data.name);
     };
-    const comparator = new Comparator(personComparator);
 
     let node1, node2, node3;
     beforeEach(() => {
@@ -323,10 +322,10 @@ describe('[TreeNode] 方法 - removeChild 方法', () => {
       expect(node1.removeChild(node3)).toBeTruthy();
       expect(node1.children.length).toBe(0);
     });
-    test('指定自定义的 comparator，成功删除', () => {
-      node1.comparator = comparator;
-      node2.comparator = comparator;
-      node3.comparator = comparator;
+    test('指定自定义的 compare function，成功删除', () => {
+      node1.compare = personCompare;
+      node2.compare = personCompare;
+      node3.compare = personCompare;
 
       node1.add(node2);
       node1.add(node3);
@@ -337,10 +336,10 @@ describe('[TreeNode] 方法 - removeChild 方法', () => {
       expect(node1.removeChild(node3)).toBeTruthy();
       expect(node1.children.length).toBe(0);
     });
-    test('指定自定义的 comparator，成功删除', () => {
-      node1 = new TreeNode(david, comparator);
-      node2 = new TreeNode(jane, comparator);
-      node3 = new TreeNode(jack, comparator);
+    test('指定自定义的 compare function，成功删除', () => {
+      node1 = new TreeNode(david, personCompare);
+      node2 = new TreeNode(jane, personCompare);
+      node3 = new TreeNode(jack, personCompare);
 
       node1.add(node2);
       node1.add(node3);

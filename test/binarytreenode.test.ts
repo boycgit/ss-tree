@@ -1,8 +1,8 @@
 import { BinaryTreeNode } from '../src/node/binarytreenode';
 import { DFS, DFS_ORDER_TYPE } from '../src/node/traverse';
-// import * as Chance from 'chance';
+import * as Chance from 'chance';
 // import Comparator, { CompareResult } from 'ss-comparator';
-// const chance = new Chance();
+const chance = new Chance();
 
 /*
  *
@@ -140,18 +140,56 @@ describe('[BinaryTreeNode] 方法 - removeChild 方法', () => {
     const rootNode = new BinaryTreeNode(2);
 
     rootNode.setLeft(leftNode).setRight(rightNode);
+    expect(leftNode.parent).toBe(rootNode);
+    expect(rightNode.parent).toBe(rootNode);
 
     expect(rootNode.removeChild(rootNode.left)).toBe(true);
     expect(rootNode.left).toBeNull();
+    expect(leftNode.parent).toBeNull();
+    expect(rightNode.parent).toBe(rootNode);
     expect(rootNode.right).toBe(rightNode);
 
     expect(rootNode.removeChild(rootNode.right)).toBe(true);
     expect(rootNode.left).toBeNull();
+    expect(leftNode.parent).toBeNull();
+    expect(rightNode.parent).toBeNull();
     expect(rootNode.right).toBeNull();
 
     expect(rootNode.removeChild(rootNode.right)).toBe(false);
     expect(rootNode.left).toBeNull();
     expect(rootNode.right).toBeNull();
+    expect(leftNode.parent).toBeNull();
+    expect(rightNode.parent).toBeNull();
+
+    expect(rootNode.removeChild(null)).toBe(false);
+  });
+});
+
+describe('[BinaryTreeNode] 方法 - replaceChild 方法', () => {
+  let nodes, root;
+  beforeEach(() => {
+    nodes = BaseNodeFactory();
+    root = nodes[0];
+  });
+
+  it('替换子节点，节点有可能会重复哦', () => {
+    expect(root.replaceChild(nodes[1], nodes[2])).toBeTruthy();
+    expect(root.left).toBe(nodes[2]);
+    expect(root.right).toBe(nodes[2]);
+  });
+
+  it('如果不是子节点，则无法替换', () => {
+    expect(root.replaceChild(nodes[3], nodes[2])).toBeFalsy();
+    expect(root.left).toBe(nodes[1]);
+    expect(root.right).toBe(nodes[2]);
+  });
+
+  it('节点不存在时，不替换子节点', () => {
+    expect(root.replaceChild(nodes[1], null)).toBeFalsy();
+    expect(root.replaceChild(null, nodes[1])).toBeFalsy();
+    expect(root.replaceChild(null, null)).toBeFalsy();
+    expect(root.left).toBe(nodes[1]);
+    expect(root.right).toBe(nodes[2]);
   });
 });
 
@@ -230,12 +268,64 @@ describe('[BinaryTreeNode] DFS - 前序、中序、后序遍历', () => {
   });
 
   test('前序遍历', () => {
-      expect(DFS(root, hander, false, DFS_ORDER_TYPE.PRE)).toEqual([1, 2, 4, 6, 7, 8, 3, 5]);
+    expect(DFS(root, hander, false, DFS_ORDER_TYPE.PRE)).toEqual([
+      1,
+      2,
+      4,
+      6,
+      7,
+      8,
+      3,
+      5
+    ]);
   });
   test('中序遍历', () => {
-      expect(DFS(root, hander, false, DFS_ORDER_TYPE.IN)).toEqual([4, 7, 6, 8, 2, 1, 3, 5]);
+    expect(DFS(root, hander, false, DFS_ORDER_TYPE.IN)).toEqual([
+      4,
+      7,
+      6,
+      8,
+      2,
+      1,
+      3,
+      5
+    ]);
   });
   test('后序遍历', () => {
-      expect(DFS(root, hander, false, DFS_ORDER_TYPE.POST)).toEqual([7, 8, 6, 4, 2, 5, 3, 1]);
+    expect(DFS(root, hander, false, DFS_ORDER_TYPE.POST)).toEqual([
+      7,
+      8,
+      6,
+      4,
+      2,
+      5,
+      3,
+      1
+    ]);
+  });
+
+  test('各种遍历方式可以被中途打断', () => {
+    let count = 0;
+    const handerCount = function(node: BinaryTreeNode) {
+      if (!!node) {
+        count = count + 1;
+      }
+      return (node && node.data === 8) || false;
+    };
+    DFS(root, handerCount, true, DFS_ORDER_TYPE.PRE);
+    expect(count).toBe(6);
+
+    count = 0;
+    DFS(root, handerCount, true, DFS_ORDER_TYPE.IN);
+    expect(count).toBe(4);
+
+    count = 0;
+    DFS(root, handerCount, true, DFS_ORDER_TYPE.POST);
+    expect(count).toBe(2);
+  });
+  test('其他遍历方式不支持', () => {
+    expect(() => {
+      DFS(root, hander, false, chance.string() as DFS_ORDER_TYPE);
+    }).toThrow();
   });
 });

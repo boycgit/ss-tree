@@ -41,7 +41,10 @@ npm test
 
 ## document
 
-主要注意空树（tree.root = null） 和 根节点为空 (tree.root = new TreeNode()) 的差别；
+主要注意：
+ - 空树（tree.root = null） 和 根节点为空 (tree.root = new TreeNode()) 的差别；
+ - 节点的 `data` 概念和 `value` 是不同的，`data` 是节点最原始的数据，而 `value` 则是 `data` 属性的映射之后的数值
+ - 为 BST 能够高效运转，应当让所有数据去重后再存储
 
 ```bash
 npm run doc

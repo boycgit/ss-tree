@@ -1,4 +1,4 @@
-import Comparator from 'ss-comparator';
+import { compareFunction } from 'ss-comparator';
 // import { invariant } from '../lib';
 import { TreeNode } from './treenode';
 import { getLevelInfo } from './traverse';
@@ -9,8 +9,8 @@ export type BinaryNodeOrNull = BinaryTreeNode | null;
 export class BinaryTreeNode extends TreeNode {
   parent: BinaryNodeOrNull;
   children: BinaryNodeOrNull[];
-  constructor(data?, comparator = new Comparator()) {
-    super(data, comparator);
+  constructor(data?, compare?: compareFunction) {
+    super(data, compare);
     this.children = [null, null]; // 二叉树节点，最多有两个 child，初始化为 null
   }
 
@@ -82,13 +82,13 @@ export class BinaryTreeNode extends TreeNode {
       false,
       '`add` function was disabled in BinaryNode, please use `setLeft` or `setRight` instead'
     );
-      return new TreeNode(node); // won't execute, just for let typescript pass
+    return new TreeNode(node); // won't execute, just for let typescript pass
   }
   /**
    * @param {BinaryTreeNode} node
    * @return {BinaryTreeNode}
    */
-  setLeft(node): BinaryTreeNode {
+  setLeft(node: BinaryNodeOrNull): BinaryTreeNode {
     // Reset parent for left node since it is going to be detached.
     if (this.left) {
       this.left.parent = null;
@@ -109,7 +109,7 @@ export class BinaryTreeNode extends TreeNode {
    * @param {BinaryTreeNode} node
    * @return {BinaryTreeNode}
    */
-  setRight(node): BinaryTreeNode {
+  setRight(node: BinaryNodeOrNull): BinaryTreeNode {
     // Reset parent for right node since it is going to be detached.
     if (this.right) {
       this.right.parent = null;
@@ -131,15 +131,46 @@ export class BinaryTreeNode extends TreeNode {
    * @return {boolean}
    */
   removeChild(nodeToRemove) {
+    
     if (this.left && this.comparator.equal(this.left, nodeToRemove)) {
       this.children[0] = null;
+      nodeToRemove.parent = null;
       return true;
     }
 
     if (this.right && this.comparator.equal(this.right, nodeToRemove)) {
       this.children[1] = null;
+      nodeToRemove.parent = null;
       return true;
     }
+
+    return false;
+  }
+
+  /**
+   * replace child node to another node
+   *
+   * @param {BinaryNodeOrNull} childNode - current child node
+   * @param {BinaryNodeOrNull} resultNode - replacement child
+   * @returns {boolean}
+   * @memberof BinaryTreeNode
+   */
+  replaceChild(
+    childNode: BinaryNodeOrNull,
+    resultNode: BinaryNodeOrNull
+  ): boolean {
+    if (!childNode || !resultNode) {
+      return false;
+    }
+
+    if (this.left === childNode) {
+      this.setLeft(resultNode);
+      return true;
+    } else if (this.right === childNode) {
+      this.setRight(resultNode);
+      return true;
+    }
+
     return false;
   }
 }

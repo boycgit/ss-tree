@@ -143,7 +143,6 @@ export function DFS(
         false,
         `current not support traverse type: ${type}, please use pre-order、in-order or post-order `
       );
-      break;
   }
 }
 

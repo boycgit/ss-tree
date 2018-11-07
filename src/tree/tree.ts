@@ -1,4 +1,5 @@
 import { TreeNode, NodeOrNull, NodeLikeObject } from '../node/treenode';
+import Comparator, { compareFunction } from 'ss-comparator';
 import {
   map,
   traverse,
@@ -12,7 +13,7 @@ import {
   TRAVERSE_TYPE,
   ConditionFunction
 } from '../node/traverse';
-import { invariant, isExist } from '../lib';
+import { isExist } from '../lib';
 
 // condition function for get tree leaves
 export const IsLeafCondition = function(node: NodeOrNull) {
@@ -40,15 +41,31 @@ export const SizeHandler = function(node: TreeNode, lastResult: number = 0) {
 
 export class Tree {
   _root: NodeOrNull;
-  constructor(data?) {
+  comparator: Comparator;
+  constructor(data?, compare?: compareFunction) {
     let nodeData: NodeOrNull = null;
     // 支持入参是 node 的场景
     if (data instanceof TreeNode) {
       nodeData = data;
     } else if (isExist(data, false)) {
-      nodeData = new TreeNode(data);
+      nodeData = new TreeNode(data, compare);
     }
     this._root = nodeData;
+    this.comparator = new Comparator(compare);
+  }
+
+  get compare(): compareFunction {
+    return this.comparator.compare;
+  }
+
+  set compare(compare) {
+    this.comparator = new Comparator(compare);
+    // update all node's compare 
+    this.traverse((node: NodeOrNull)=>{
+      if (node && node.compare !== compare){
+        node.compare = compare;
+      }
+    })
   }
 
   get root(): NodeOrNull {
@@ -56,6 +73,10 @@ export class Tree {
   }
   set root(node: NodeOrNull) {
     this._root = node;
+    // clear parent refer
+    if (node) {
+      node.parent = null;
+    }
   }
 
   get isEmpty(): boolean {
@@ -162,7 +183,7 @@ export class Tree {
     childrenAssigner: ChildAssigner = DEFAULT_ASSIGNER
   ): Tree {
     const newRoot = map(this._root, mapper, disableParent, childrenAssigner);
-    return new Tree(newRoot);
+    return new Tree(newRoot, this.compare);
   }
 
   /**
@@ -184,32 +205,38 @@ export class Tree {
    * @param {TreeNode} node - node want to add to current tree
    * @param {ConditionFunction} condition - node which satisfy the condition, as parent nodes
    * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
-   * @returns {NodeOrNull}
+   * @returns {Tree}
    * @memberof Tree
    */
+  add(data: any): Tree;
   add(
     node: TreeNode,
     condition: ConditionFunction,
-    traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
-  ): NodeOrNull {
-    invariant(
-      node instanceof TreeNode,
-      `param \`node\` ${node} should be tree-node instance`
-    );
+    traverseType: TRAVERSE_TYPE
+  ): Tree;
+  add(
+    nodeOrData: TreeNode | any,
+    condition?: ConditionFunction,
+    traverseType?: TRAVERSE_TYPE
+  ): Tree {
+    const node =
+      nodeOrData instanceof TreeNode ? nodeOrData : new TreeNode(nodeOrData, this.compare);
 
-    let parent: NodeOrNull = null;
-    let handler = function(currentNode) {
-      if (condition(currentNode)) {
-        parent = currentNode;
-        currentNode.add(node);
-        return true;
-      }
-      return false;
-    };
-    // 遍历，添加完就完毕，不需要遍历完
-    this.traverse(handler, traverseType, true);
+    // only condition is funciton, can do traverse
+    // condition 不存在的情况，只是为了应付子类重载的场景
+    if (typeof condition === 'function') {
+      let handler = function(currentNode) {
+        if (condition(currentNode)) {
+          currentNode.add(node);
+          return true;
+        }
+        return false;
+      };
+      // 遍历，添加完就完毕，不需要遍历完
+      this.traverse(handler, traverseType, true);
+    }
 
-    return parent;
+    return this;
   }
 
   /**
@@ -220,11 +247,13 @@ export class Tree {
    * @returns {TreeNode[]}
    * @memberof Tree
    */
+  remove(data: any): TreeNode[]; // 用于 BST 等子类的重载，直接根据 data 来查找数据
+  remove(condition: ConditionFunction, traverseType: TRAVERSE_TYPE);
   remove(
-    condition: ConditionFunction,
+    dataOrCondition: ConditionFunction | any,
     traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
   ): TreeNode[] {
-    const nodes = this.find(condition, traverseType);
+    const nodes = this.find(dataOrCondition, traverseType);
     nodes.forEach(currentNode => {
       currentNode.remove();
 
@@ -240,16 +269,23 @@ export class Tree {
   /**
    * find node from tree
    *
-   * @param {ConditionFunction} condition - node which satisfy the condition, as parent nodes
+   * @param {ConditionFunction | any} dataOrCondition - node which satisfy the condition, as parent nodes
    * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
    * @returns {TreeNode[]}
    * @memberof Tree
    */
+  find(data: any): TreeNode[]; // 用于 BST 等子类的重载，直接根据 data 来查找数据
+  find(condition: ConditionFunction, traverseType: TRAVERSE_TYPE);
   find(
-    condition: ConditionFunction,
+    dataOrCondition: ConditionFunction | any,
     traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
-  ): TreeNode[] {
-    // 遍历
+  ) {
+    const condition =
+      typeof dataOrCondition === 'function'
+        ? dataOrCondition
+        : function(node: TreeNode) {
+            return node.data === dataOrCondition;
+          };
     return find(this.root, condition, traverseType);
   }
 

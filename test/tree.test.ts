@@ -2,7 +2,7 @@ import { TreeNode } from '../src/node/treenode';
 import { TRAVERSE_TYPE } from '../src/node/traverse';
 import { Tree } from '../src/tree/tree';
 import * as Chance from 'chance';
-import Comparator from 'ss-comparator';
+import Comparator, { CompareResult } from 'ss-comparator';
 const chance = new Chance();
 
 /*
@@ -166,6 +166,22 @@ describe('[Tree] 构造函数  - 构造函数', () => {
     const root = tree.root as TreeNode;
     expect(root.data).toBe('one');
     expect(root.children.length).toBe(3);
+  });
+});
+
+describe('[Tree] 属性 - compare 属性', () => {
+  const lengthCompare = function(a: TreeNode, b: TreeNode): CompareResult {
+    return Comparator.defaultCompareFunction(a.data.name, b.data.name);
+  };
+  test('可以设置 compare 属性，会自动更新树中所有节点的 compare 属性', () => {
+    const tree = new Tree('one');
+    const root = tree.root as TreeNode;
+    expect(root.compare).not.toBe(lengthCompare);
+    tree.compare = lengthCompare;
+    expect(root.compare).toBe(lengthCompare);
+
+    const newRoot = root.clone();
+    expect(newRoot.compare).toBe(lengthCompare);
   });
 });
 
@@ -452,16 +468,13 @@ describe('[Tree] 方法  - add 方法', () => {
     tree = Tree.fromNode(nodes[0]);
   });
 
-  test('根据 conditaion 函数添加节点，返回父节点', () => {
+  test('根据 conditaion 函数添加节点', () => {
     const node9 = new TreeNode('nine');
     const condition = function(node: TreeNode) {
       return node.data === 'eight';
     };
 
-    const parent = tree.add(node9, condition);
-
-    expect(parent).toBeInstanceOf(TreeNode);
-    expect(parent.data).toBe('eight');
+    tree.add(node9, condition);
     expect(tree.size).toBe(9);
     expect(tree.depth).toBe(4);
   });
@@ -472,24 +485,33 @@ describe('[Tree] 方法  - add 方法', () => {
       return node.data === 'eight';
     };
 
-    const parent1 = tree.add(node9, condition);
-    const parent2 = tree.add(node9, condition, TRAVERSE_TYPE.DFS);
+    tree.add(node9, condition);
+    tree.add(node9, condition, TRAVERSE_TYPE.DFS);
 
-    expect(parent1).toBe(parent2);
-    expect(parent1).toBeInstanceOf(TreeNode);
-    expect(parent1.data).toBe('eight');
     expect(tree.size).toBe(9);
     expect(tree.depth).toBe(4);
   });
+
+  test('可以链式调用', () => {
+    const node9 = new TreeNode('nine');
+    const node10 = new TreeNode('ten');
+    const condition = function(node: TreeNode) {
+      return node.data === 'eight';
+    };
+
+    tree.add(node9, condition).add(node10, condition, TRAVERSE_TYPE.DFS);
+
+    expect(tree.size).toBe(10);
+    expect(tree.depth).toBe(4);
+  });
+
   test('条件不符合时，不会添加节点', () => {
     const node9 = new TreeNode('nine');
     const condition = function(node: TreeNode) {
       return node.data === 'ten';
     };
 
-    const parent = tree.add(node9, condition);
-
-    expect(parent).toBeNull();
+    tree.add(node9, condition);
     expect(tree.size).toBe(8);
     expect(tree.depth).toBe(3);
   });
@@ -514,6 +536,15 @@ describe('[Tree] 方法  - find 方法', () => {
     expect(nodes1).toContainEqual(nodes[0]);
     expect(nodes1).toContainEqual(nodes[1]);
     expect(nodes1).toContainEqual(nodes[5]);
+  });
+  test('可以直接通过 data 内容进行查找', () => {
+    const nodes1 = tree.find('one');
+    const nodes2 = tree.find('eight', TRAVERSE_TYPE.DFS);
+
+    expect(nodes1.length).toBe(1);
+    expect(nodes2.length).toBe(1);
+    expect(nodes1).toContainEqual(nodes[0]);
+    expect(nodes2).toContainEqual(nodes[7]);
   });
 
   test('没有满足节点的，返回空数组', () => {
@@ -551,6 +582,19 @@ describe('[Tree] 方法  - remove 方法', () => {
     expect(tree.size).toBe(5);
   });
 
+  test('可以根据 data 数据直接删除指定节点', () => {
+    const nodes = tree.remove('two');
+
+    const datas = nodes.map(l => {
+      expect(l.parent).toBeNull();
+      return l.data;
+    });
+    expect(datas.length).toBe(1);
+    expect(datas).toContain('two');
+
+    expect(tree.size).toBe(4);
+  });
+
   test('删除根节点后，变成空树', () => {
     const condition = function(node: TreeNode) {
       return node.data.length === 3;
@@ -571,7 +615,7 @@ describe('[Tree] 方法  - remove 方法', () => {
 
   test('没有满足节点的，返回空数组', () => {
     const condition = function(node: TreeNode) {
-      return node && node.data && node.data.length === 3 || false;
+      return (node && node.data && node.data.length === 3) || false;
     };
     const nodes1 = tree.remove(condition, TRAVERSE_TYPE.DFS);
 
@@ -599,11 +643,6 @@ describe('[Tree] 异常  - 抛出异常的情况', () => {
     expect(() => {
       tree.map(chance.string({ length: 5 }));
     }).toThrowError('should be function');
-  });
-  test('add 方法， node 参数必须是 TreeNode 类型', () => {
-    expect(() => {
-      tree.add(chance.string({ length: 5 }));
-    }).toThrowError('should be tree-node instance');
   });
 });
 

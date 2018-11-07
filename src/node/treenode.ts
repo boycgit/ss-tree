@@ -1,4 +1,4 @@
-import Comparator from 'ss-comparator';
+import Comparator, { compareFunction } from 'ss-comparator';
 import { invariant } from '../lib';
 
 // 默认的数据拷贝函数，保存的 data 数据最好 json 格式
@@ -30,15 +30,22 @@ export class TreeNode {
   parent: NodeOrNull;
   children: NodeOrNull[];
   comparator: Comparator;
-  constructor(data?, comparator = new Comparator()) {
+  constructor(data?, compare?: compareFunction) {
+    
     this.data = data;
-
     // any node related meta information may be stored here
     this.meta = {};
-
     this.parent = null;
     this.children = [];
-    this.comparator = comparator;
+    this.comparator = new Comparator(compare);
+  }
+
+  get compare(): compareFunction {
+    return this.comparator.compare;
+  }
+
+  set compare(compare) {
+    this.comparator = new Comparator(compare);
   }
 
   /**
@@ -81,14 +88,16 @@ export class TreeNode {
   }
 
   /**
-   * clone current node
+   * clone current node, with data and meta, not copy parent or children
    *
    * @param {*} [handler=nodeCloner]
    * @returns
    * @memberof TreeNode
    */
   clone(handler = nodeCloner) {
-    return new TreeNode(handler(this.data), this.comparator);
+    const newNode = new TreeNode(handler(this.data), this.compare);
+    newNode.meta = handler(this.meta);
+    return newNode;
   }
 
   /**
