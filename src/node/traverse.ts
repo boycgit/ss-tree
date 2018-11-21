@@ -1,4 +1,10 @@
-import { TreeNode, NodeOrNull, NodeLikeObject } from './treenode';
+import {
+  TreeNode,
+  NodeOrNull,
+  NodeLikeObject,
+  NodeOrLikedOrNull,
+  isNodeLikeObject
+} from './treenode';
 import { BinaryTreeNode, BinaryNodeOrNull } from './binarytreenode';
 import { invariant, isFunction } from '../lib';
 import Stack from 'ss-stack';
@@ -29,17 +35,17 @@ export enum DFS_ORDER_TYPE {
 
 // handle current node when traverse
 export type NodeHandler = (
-  node: NodeOrNull,
+  node: NodeOrLikedOrNull,
   lastHandleResult?: any,
   levelNo?: number, // only for BFS
-  levelNodes?: NodeOrNull[] // only for BFS
+  levelNodes?: NodeOrLikedOrNull[] // only for BFS
 ) => any;
 
 // map current node to another
 export type NodeMapper = (
-  node: NodeOrNull,
-  parent?: NodeOrNull
-) => NodeOrNull | NodeLikeObject;
+  node: NodeOrLikedOrNull,
+  parent?: NodeOrLikedOrNull
+) => NodeOrLikedOrNull;
 
 // assinger child to parent in tree
 export type ChildAssigner = (parent: TreeNode, children: TreeNode[]) => void;
@@ -48,8 +54,8 @@ export type ChildAssigner = (parent: TreeNode, children: TreeNode[]) => void;
 export type ConditionFunction = (node: TreeNode) => boolean;
 
 export const DEFAULT_ASSIGNER: ChildAssigner = function(
-  parent: NodeOrNull,
-  children: NodeOrNull[]
+  parent: any,
+  children: any[]
 ) {
   if (!!parent) {
     parent.children = children;
@@ -60,17 +66,17 @@ export const DEFAULT_ASSIGNER: ChildAssigner = function(
  * breadth first search, 广度优先搜索
  *
  * @export
- * @param {( NodeOrNull)} inputNode - input node or nodes
+ * @param {( NodeOrLikedOrNull)} inputNode - input node or nodes
  * @param {NodeHandler} handler - handler of node when traverse
  * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
  * @returns {*}
  */
 export function BFS(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   handler: NodeHandler,
   breakIfHandlerReturnTrue = true
 ): any {
-  const queue = new Queue<NodeOrNull>();
+  const queue = new Queue<NodeOrLikedOrNull>();
 
   //先将第一层节点放入栈，倒序压入，判断节点是否存在
   queue.enqueue(inputNode);
@@ -110,14 +116,14 @@ export function BFS(
  * depth first search, 深度优先搜索
  *
  * @export
- * @param {(NodeOrNull)} inputNode - input node or nodes
+ * @param {(NodeOrLikedOrNull)} inputNode - input node or nodes
  * @param {NodeHandler} handler - handler of node when traverse
  * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
  * @param {DFS_ORDER_TYPE} [type=DFS_ORDER_TYPE.PRE] - dfs traverse type
  * @returns {*}
  */
 export function DFS(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   handler: NodeHandler,
   breakIfHandlerReturnTrue = true,
   type: DFS_ORDER_TYPE = DFS_ORDER_TYPE.PRE
@@ -149,18 +155,18 @@ export function DFS(
 /**
  * depth first search, 深度优先搜索，前序遍历
  *
- * @param {NodeOrNull} inputNode
+ * @param {NodeOrLikedOrNull} inputNode
  * @param {NodeHandler} handler
  * @param {boolean} [breakIfHandlerReturnTrue=true]
  * @returns
  */
 
 function DFS_PRE_ORDER(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   handler: NodeHandler,
   breakIfHandlerReturnTrue = true
 ) {
-  var stack = new Stack<NodeOrNull>();
+  var stack = new Stack<NodeOrLikedOrNull>();
   // 将节点倒序入栈，判断节点是否存在
   stack.push(inputNode);
 
@@ -187,19 +193,19 @@ function DFS_PRE_ORDER(
  * depth first search, 深度优先搜索，后续遍历，双栈遍历
  * 算法来自：https://www.geeksforgeeks.org/iterative-postorder-traversal/
  *
- * @param {NodeOrNull} inputNode
+ * @param {NodeOrLikedOrNull} inputNode
  * @param {NodeHandler} handler
  * @param {boolean} [breakIfHandlerReturnTrue=true]
  * @returns
  */
 function DFS_POST_ORDER(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   handler: NodeHandler,
   breakIfHandlerReturnTrue = true
 ) {
   // Create two stacks
-  var stack = new Stack<NodeOrNull>();
-  var secondStack = new Stack<NodeOrNull>();
+  var stack = new Stack<NodeOrLikedOrNull>();
+  var secondStack = new Stack<NodeOrLikedOrNull>();
 
   let lastHandleResult;
   let node;
@@ -269,14 +275,14 @@ function DFS_IN_ORDER(
  * traverse api, call static DFS or BFS inner
  *
  * @export
- * @param {(NodeOrNull)} inputNodes - input node or nodes
+ * @param {(NodeOrLikedOrNull)} inputNodes - input node or nodes
  * @param {NodeHandler} handler - handler of node when traverse
  * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
  * @param {boolean} [breakIfHandlerReturnTrue=true] - break traverse if handler return true
  * @returns {*}
  */
 export function traverse(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   handler: NodeHandler,
   traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS,
   breakIfHandlerReturnTrue = true
@@ -299,18 +305,18 @@ export function traverse(
  *
  *
  * @export
- * @param {NodeOrNull} inputNode - original tree node
+ * @param {NodeOrLikedOrNull} inputNode - original tree node
  * @param {NodeMapper} mapper -  (currentNode, parentNode) param `currentNode` is the current node for mapper function, no need to handle its children attribute； param `parentNode` is refer to parent node of current
  * @param {boolean} [disableParent=false] - is usually set `true` when you use your custom `childrenAssigner` function, or other tree node
  * @param {ChildAssigner} [childrenAssigner=DEFAULT_ASSIGNER] - custom children assigner function
- * @returns {(NodeOrNull | NodeLikeObject)}
+ * @returns {(NodeOrLikedOrNull)}
  */
 export function map(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   mapper: NodeMapper,
   disableParent = false,
   childrenAssigner: ChildAssigner = DEFAULT_ASSIGNER
-): NodeOrNull | NodeLikeObject {
+): NodeOrLikedOrNull {
   invariant(
     isFunction(mapper),
     `param \`mapper\` ${mapper} should be function type`
@@ -319,12 +325,12 @@ export function map(
     return null;
   }
   invariant(
-    inputNode instanceof TreeNode,
-    `param \`inputNode\` ${inputNode} should be TreeNode instance`
+    isNodeLikeObject(inputNode),
+    `param \`inputNode\` ${inputNode} should be TreeNode(or Like) instance`
   );
 
-  var queue = new Queue<NodeOrNull>(); // 基准队列
-  var queuePair = new Queue<NodeOrNull | NodeLikeObject>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
+  var queue = new Queue<NodeOrLikedOrNull>(); // 基准队列
+  var queuePair = new Queue<NodeOrLikedOrNull | NodeLikeObject>(); // 同步用的队列，给新对象使用， 这样不更改原始对象数据，同时每个队列的对象类型是一致的；
   const newTreeNode = mapper(inputNode); // 克隆，防止修改原始对象
 
   invariant(
@@ -370,13 +376,13 @@ export function map(
  * find tree node match the given codition
  *
  * @export
- * @param {(NodeOrNull)} inputNode - original tree node
+ * @param {(NodeOrLikedOrNull)} inputNode - original tree node
  * @param {ConditionFunction} condition - condition function use to match target node
  * @param {TRAVERSE_TYPE} [traverseType=TRAVERSE_TYPE.BFS] - traverse type
  * @returns {TreeNode[]}
  */
 export function find(
-  inputNode: NodeOrNull,
+  inputNode: NodeOrLikedOrNull,
   condition: ConditionFunction,
   traverseType: TRAVERSE_TYPE = TRAVERSE_TYPE.BFS
 ): TreeNode[] {
@@ -398,24 +404,24 @@ export function find(
  */
 export interface LevelInfo {
   depth: number;
-  levels: NodeOrNull[][];
+  levels: NodeOrLikedOrNull[][];
 }
 
 /**
  * get level info of tree, using BFS
  *
  * @export
- * @param {(NodeOrNull)} inputNode  - original tree node
+ * @param {(NodeOrLikedOrNull)} inputNode  - original tree node
  * @returns {LevelInfo}
  */
-export function getLevelInfo(inputNode: NodeOrNull): LevelInfo {
+export function getLevelInfo(inputNode: NodeOrLikedOrNull): LevelInfo {
   const levelInfo = { depth: 0, levels: [] }; // 相当于 immutable 化;
   if (!inputNode) return levelInfo;
   const handler = function(
     currentNode: TreeNode,
     lastResult: LevelInfo = levelInfo,
     levelNo: number,
-    levelNodes: NodeOrNull[]
+    levelNodes: NodeOrLikedOrNull[]
   ) {
     // 有一种边界情况，最后一层的节点全部都是 null（说的就是二叉树的最后一层），这个时候最后一层就不应算进高度
     // 为了性能考虑，不需要去判断 levelNodes 是否全是 [null, ..., null] 形式的，如果当前节点是 null，直接略过此次操作

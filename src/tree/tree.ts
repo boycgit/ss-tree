@@ -1,4 +1,9 @@
-import { TreeNode, NodeOrNull, NodeLikeObject } from '../node/treenode';
+import {
+  TreeNode,
+  NodeOrNull,
+  NodeLikeObject,
+  NodeOrLikedOrNull
+} from '../node/treenode';
 import Comparator, { compareFunction } from 'ss-comparator';
 import {
   map,
@@ -60,12 +65,12 @@ export class Tree {
 
   set compare(compare) {
     this.comparator = new Comparator(compare);
-    // update all node's compare 
-    this.traverse((node: NodeOrNull)=>{
-      if (node && node.compare !== compare){
+    // update all node's compare
+    this.traverse((node: NodeOrNull) => {
+      if (node && node.compare !== compare) {
         node.compare = compare;
       }
-    })
+    });
   }
 
   get root(): NodeOrNull {
@@ -127,10 +132,10 @@ export class Tree {
    * get per level nodes
    *
    * @readonly
-   * @type {NodeOrNull[][]}
+   * @type {NodeOrLikedOrNull[][]}
    * @memberof Tree
    */
-  get levels(): NodeOrNull[][] {
+  get levels(): NodeOrLikedOrNull[][] {
     const levelInfo = getLevelInfo(this.root);
     return levelInfo.levels;
   }
@@ -193,7 +198,7 @@ export class Tree {
    * @memberof Tree
    */
   clone(): Tree {
-    return this.map(node => {
+    return this.map((node: NodeOrNull) => {
       return !!node ? node.clone() : null;
     });
   }
@@ -220,7 +225,9 @@ export class Tree {
     traverseType?: TRAVERSE_TYPE
   ): Tree {
     const node =
-      nodeOrData instanceof TreeNode ? nodeOrData : new TreeNode(nodeOrData, this.compare);
+      nodeOrData instanceof TreeNode
+        ? nodeOrData
+        : new TreeNode(nodeOrData, this.compare);
 
     // only condition is funciton, can do traverse
     // condition 不存在的情况，只是为了应付子类重载的场景

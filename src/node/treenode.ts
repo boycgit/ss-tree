@@ -23,6 +23,12 @@ export interface NodeLikeObject {
 export type NodeEqualComarator = (node: TreeNode) => boolean;
 
 export type NodeOrNull = TreeNode | null;
+export type NodeOrLiked = TreeNode | NodeLikeObject;
+export type NodeOrLikedOrNull = NodeOrNull | NodeLikeObject;
+
+export function isNodeLikeObject(obj: any): obj is NodeLikeObject {
+  return obj instanceof TreeNode || 'children' in obj || 'parent' in obj;
+}
 
 export class TreeNode {
   data: any;
@@ -31,7 +37,6 @@ export class TreeNode {
   children: NodeOrNull[];
   comparator: Comparator;
   constructor(data?, compare?: compareFunction) {
-    
     this.data = data;
     // any node related meta information may be stored here
     this.meta = {};
